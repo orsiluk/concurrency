@@ -1,0 +1,63 @@
+#include "libc.h"
+#include <string.h>
+//What do I put here exactly? The functions but which?
+int write( int fd, void* x, size_t n ) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "mov r1, %2 \n"
+	              "mov r2, %3 \n"
+	              "svc #1     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (fd), "r" (x), "r" (n)
+	              : "r0", "r1", "r2" );
+
+	return r;
+}
+
+
+int fork() {
+	int r;
+	asm volatile(
+	    "svc #2     \n"
+	    "mov %0, r0 \n"
+	    : "=r" (r));
+
+	return r;
+
+}
+
+void system_exit() {
+	asm volatile(
+	    "svc #4     \n");
+}
+
+int read( int fd, void* x, size_t n ) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "mov r1, %2 \n"
+	              "mov r2, %3 \n"
+	              "svc #3     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (fd), "r" (x), "r" (n)
+	              : "r0", "r1", "r2" );
+
+	return r;
+}
+
+void printInt(int i) {
+	if ( i > 10) {
+		printInt(i / 10);
+	}
+	char digit = 0x30 + i % 10;
+	write(0, &digit, 1);
+}
+
+void printS(char* text) {
+	int n = strlen(text);
+	write(0, text, n);
+}
+//write printf for strings :)
