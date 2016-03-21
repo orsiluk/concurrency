@@ -20,6 +20,7 @@ void P1() {
       n--;
       printS("P1 ~~ ");
     }
+    printS("\n");
     yield();
   }
 

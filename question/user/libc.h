@@ -6,7 +6,7 @@
 
 int write( int fd, void* x, size_t n );
 
-int read( int fd, void* x, size_t n );
+int read( void* x );
 
 //int read( void* text );
 

@@ -18,6 +18,7 @@ void P2() {
       n--;
       printS("P2 -- ");
     }
+    printS("\n");
     yield();
   }
 

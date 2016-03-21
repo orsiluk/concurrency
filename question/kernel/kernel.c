@@ -153,9 +153,9 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	}
 
 	case 0x03 : { // read( fd, x, n )
-		int   fd = ( int   )( ctx->gpr[ 0 ] );
-		char*  x = ( char* )( ctx->gpr[ 1 ] );
-		int    n = ( int   )( ctx->gpr[ 2 ] );
+		//int   fd = ( int   )( ctx->gpr[ 0 ] );
+		char*  x = ( char* )( ctx->gpr[ 0 ] );
+		//int    n = ( int   )( ctx->gpr[ 2 ] );
 
 		/*		for ( int i = 0; i < n - 1; i++ ) {
 					x[i] = PL011_getc( UART0);

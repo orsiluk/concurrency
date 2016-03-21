@@ -54,8 +54,9 @@ void P0() {
     */
     while (n > 0) {
       printS("Read text: ");
-      read( 0, x, 50 );
+      read( x );
       printS(x);
+      printS("\n");
       n--;
     }
     yield();

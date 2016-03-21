@@ -21,17 +21,15 @@ int write( int fd, void* x, size_t n ) {
 }
 
 
-int read( int fd, void* x, size_t n ) {
+int read(void* x ) {
 	int r;
 
 	asm volatile( "mov r0, %1 \n"
-	              "mov r1, %2 \n"
-	              "mov r2, %3 \n"
 	              "svc #3     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (fd), "r" (x), "r" (n)
-	              : "r0", "r1", "r2" );
+	              : "r" (x)
+	              : "r0");
 
 	return r;
 }
