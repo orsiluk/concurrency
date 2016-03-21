@@ -157,28 +157,24 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		char*  x = ( char* )( ctx->gpr[ 1 ] );
 		int    n = ( int   )( ctx->gpr[ 2 ] );
 
-		for ( int i = 0; i < n - 1; i++ ) {
+		/*		for ( int i = 0; i < n - 1; i++ ) {
+					x[i] = PL011_getc( UART0);
+					PL011_putc(UART0, x[i]);
+				}*/
+
+		int i = 0;
+		x[0] = PL011_getc( UART0);
+		PL011_putc(UART0, x[0]);
+		//while (x[i] != 	'\x0D') {
+		while (x[i] != '\x0D') {
+			i++;
 			x[i] = PL011_getc( UART0);
 			PL011_putc(UART0, x[i]);
 		}
-		/*		int i = 0;
-				// x[0] = PL011_getc( UART0);
-				// PL011_putc(UART0, x[0]);
-				//while (x[i] != 	'\x0D') {
-				while ( i < n ) {
-
-					while (x[i] != 	'\x0D') {
-						x[i] = PL011_getc( UART0);
-						PL011_putc(UART0, x[i]);
-					}
-					x[i]=' ';
-					i++;
-				}
-				printS("\n");
-				ctx->gpr[ 0 ] = i;*/
 		printS("\n");
+		ctx->gpr[ 0 ] = i - 1;
 
-		ctx->gpr[ 0 ] = n;
+		// ctx->gpr[ 0 ] = n;
 		break;
 	}
 

@@ -19,7 +19,7 @@ int is_prime( uint32_t x ) {
 
 
 void P0() {
-  char x[11];
+  char x[50];
 
   /*  for ( uint32_t d = 10; d > 0 ; d -= 1 ) {
       write(0, "Process 0 \n", 11 );
@@ -54,9 +54,8 @@ void P0() {
     */
     while (n > 0) {
       printS("Read text: ");
-      read( 0, x, 11 );
+      read( 0, x, 50 );
       printS(x);
-      printS("\n");
       n--;
     }
     yield();
