@@ -13,12 +13,13 @@ void scheduler( ctx_t* ctx ) {
 	// the child of process two it will print 12321232....
 
 	if ( current != &pcb[ nr - 1 ] ) {// -1 because I started counting form 0
-		printInt(nr - 1);
+		//printS(" not in last    ");
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ current -> pid + 1 ];
 	} else {
-		printInt(nr - 1);
+		//printS(" IN last    ");
+		//printInt(nr - 1);
 		memcpy( &pcb[ nr ].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ 0 ];
@@ -103,7 +104,7 @@ void kernel_handler_irq(ctx_t* ctx) {
 	if ( id == GIC_SOURCE_TIMER0 ) {
 		//PL011_putc( UART0, 'T' );
 		TIMER0->Timer1IntClr = 0x01;
-		scheduler(ctx);
+		//scheduler(ctx);
 	}
 
 	// Step 5: write the interrupt identifier to signal we're done.
@@ -114,7 +115,10 @@ void kernel_handler_irq(ctx_t* ctx) {
 void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 	switch ( id ) {
-
+	case 0x00 : { // yield()
+		scheduler( ctx );
+		break;
+	}
 	case 0x01 : { // write( fd, x, n )
 		int   fd = ( int   )( ctx->gpr[ 0 ] );
 		char*  x = ( char* )( ctx->gpr[ 1 ] );
@@ -153,13 +157,46 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		char*  x = ( char* )( ctx->gpr[ 1 ] );
 		int    n = ( int   )( ctx->gpr[ 2 ] );
 
-		for ( int i = 0; i < n; i++ ) {
+		for ( int i = 0; i < n - 1; i++ ) {
 			x[i] = PL011_getc( UART0);
+			PL011_putc(UART0, x[i]);
 		}
+		/*		int i = 0;
+				// x[0] = PL011_getc( UART0);
+				// PL011_putc(UART0, x[0]);
+				//while (x[i] != 	'\x0D') {
+				while ( i < n ) {
+
+					while (x[i] != 	'\x0D') {
+						x[i] = PL011_getc( UART0);
+						PL011_putc(UART0, x[i]);
+					}
+					x[i]=' ';
+					i++;
+				}
+				printS("\n");
+				ctx->gpr[ 0 ] = i;*/
+		printS("\n");
 
 		ctx->gpr[ 0 ] = n;
 		break;
 	}
+
+	/*	case 0x04 :{ // read (*buffer)
+	      char*  buffer = ( char* )( ctx->gpr[ 0 ] );
+	      int index     = 0;
+	      int broken    = 1;
+
+	      while(broken){
+	        buffer[ index ] = PL011_getc( UART0 );
+	        if (buffer[ index ] == '\r')   broken = 0;
+	        PL011_putc( UART0, buffer[ index ] );
+	        index++;
+	      }
+
+	      ctx -> gpr[ 0 ] = index - 1;
+	    }*/
+
 
 	case 0x04 : { // exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
 		if (nr > 0) {

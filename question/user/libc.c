@@ -1,6 +1,10 @@
 #include "libc.h"
 #include <string.h>
-//What do I put here exactly? The functions but which?
+
+void yield() {
+	asm volatile( "svc #0     \n"  );
+}
+
 int write( int fd, void* x, size_t n ) {
 	int r;
 
@@ -16,6 +20,32 @@ int write( int fd, void* x, size_t n ) {
 	return r;
 }
 
+
+int read( int fd, void* x, size_t n ) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "mov r1, %2 \n"
+	              "mov r2, %3 \n"
+	              "svc #3     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (fd), "r" (x), "r" (n)
+	              : "r0", "r1", "r2" );
+
+	return r;
+}
+
+/*int read(void *text) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #3     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (text)
+	              : "r0");
+	return r;
+}*/
 
 int fork() {
 	int r;
@@ -33,20 +63,6 @@ void system_exit() {
 	    "svc #4     \n");
 }
 
-int read( int fd, void* x, size_t n ) {
-	int r;
-
-	asm volatile( "mov r0, %1 \n"
-	              "mov r1, %2 \n"
-	              "mov r2, %3 \n"
-	              "svc #3     \n"
-	              "mov %0, r0 \n"
-	              : "=r" (r)
-	              : "r" (fd), "r" (x), "r" (n)
-	              : "r0", "r1", "r2" );
-
-	return r;
-}
 
 void printInt(int i) {
 	if ( i > 10) {
@@ -60,4 +76,9 @@ void printS(char* text) {
 	int n = strlen(text);
 	write(0, text, n);
 }
+
+/*void readS(char* text) {
+	int n = strlen(text);
+	read(0, text, n);
+}*/
 //write printf for strings :)

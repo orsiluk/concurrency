@@ -19,14 +19,13 @@ int is_prime( uint32_t x ) {
 
 
 void P0() {
-  int x = 0;
-  char res[20];
+  char x[11];
 
   /*  for ( uint32_t d = 10; d > 0 ; d -= 1 ) {
       write(0, "Process 0 \n", 11 );
     }*/
-  uint32_t d = 5;
   while ( 1 ) {
+    int n = 5;
     //memset(res, 0, 20);
     //write(0, "Process 0 \n", 10 );
     // test whether each x for 2^8 < x < 2^24 is prime or not
@@ -53,7 +52,14 @@ void P0() {
     /*    fork();
         write(0, " pancakes :) \n", 11 );
     */
-    printS("It's text");
+    while (n > 0) {
+      printS("Read text: ");
+      read( 0, x, 11 );
+      printS(x);
+      printS("\n");
+      n--;
+    }
+    yield();
     //system_exit();
 
 
@@ -61,6 +67,4 @@ void P0() {
 
   return;
 }
-//Need this to se the pointer to where the program left of (Do I need one for is_prime too?)
 void (*entry_P0)() = &P0;
-//void (*entry_is_prime)() = &is_prime;

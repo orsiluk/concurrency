@@ -1,6 +1,13 @@
 /* Each of the following is a low-level interrupt handler: each one is
  * tasked with handling a different interrupt type, and acts as a sort
  * of wrapper around a high-level, C-based handler.
+ * cpsr-current state register
+ * sp - stack pointer 
+ * lr - link register which stores the program counter 
+ *  
+ *  
+ *  
+ *  
  */
 
 handler_rst: bl    table_copy              @ initialise interrupt vector table
@@ -26,7 +33,8 @@ handler_irq: sub   lr, lr, #4              @ correct return address
              sub sp, sp, #60               
              stmia sp, { r0-r12, sp, lr }^ @ store  USR registers
              mrs   r0, spsr                @ get    USR        CPSR
-             stmfd sp!, { r0-r3, ip, lr }  @ save    caller-save registers
+             stmdb sp!, { r0, lr }
+
              mov   r0, sp
              bl    kernel_handler_irq      @ invoke C function
 
@@ -38,7 +46,8 @@ handler_irq: sub   lr, lr, #4              @ correct return address
              
 handler_svc: sub   lr, lr, #0              @ correct return address
              sub   sp, sp, #60             @ update SVC mode stack
-             stmia sp, { r0-r12, sp, lr }^ @ store  USR registers
+             stmia sp, { r0-r12, sp, lr }^ @ store  USR registers ; 
+             
              mrs   r0, spsr                @ get    USR        CPSR
              stmdb sp!, { r0, lr }         @ store  USR PC and CPSR
  
@@ -56,7 +65,7 @@ handler_svc: sub   lr, lr, #0              @ correct return address
 /* The following captures the interrupt vector table, plus a function
  * to copy it into place (which is called on reset): note that 
  * 
- * - for interrupts we don't handle an infinite loop is realised (to
+ * - for interrupts we dont handle an infinite loop is realised (to
  *   to approximate halting the processor), and
  * - we copy the table itself, *plus* the associated addresses stored
  *   as static data: this preserves the relative offset between each 
