@@ -53,12 +53,14 @@ void P0() {
         write(0, " pancakes :) \n", 11 );
     */
     while (n > 0) {
-      printS("Read text: ");
-      read( x );
-      printS(x);
-      printS("\n");
+      /*      printS("Read text: ");
+            read( x );
+            printS(x);
+            printS("\n");*/
       n--;
+      printS(" P0 :) \n");
     }
+
     yield();
     //system_exit();
 

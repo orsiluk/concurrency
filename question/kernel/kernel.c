@@ -25,26 +25,21 @@ void scheduler( ctx_t* ctx ) {
 		current = &pcb[ 0 ];
 	}
 
+}
+void timer() {
 
-	/*	if ( current == &pcb[ 0 ] ) {
-			memcpy( &pcb[ 0 ].ctx, ctx, sizeof( ctx_t ) );
-			memcpy( ctx, &pcb[ 1 ].ctx, sizeof( ctx_t ) );
-			current = &pcb[ 1 ];
-			//nr = nr + 1;
-		}
-		else if ( current == &pcb[ 1 ] ) {
-			memcpy( &pcb[ 1 ].ctx, ctx, sizeof( ctx_t ) );
-			memcpy( ctx, &pcb[ 2 ].ctx, sizeof( ctx_t ) );
-			current = &pcb[ 2 ];
-			//nr = nr + 1;
-		}
-		else if ( current == &pcb[ 2 ] ) {
-			memcpy( &pcb[ 2 ].ctx, ctx, sizeof( ctx_t ) );
-			memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
-			current = &pcb[ 0 ];
-			//nr = nr + 1;
-		}*/
+	TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+	TIMER0->Timer1Ctrl     = 0x00000002; // select 32-bit   timer
+	TIMER0->Timer1Ctrl    |= 0x00000040; // select periodic timer
+	TIMER0->Timer1Ctrl    |= 0x00000020; // enable          timer interrupt
+	TIMER0->Timer1Ctrl    |= 0x00000080; // enable          timer
 
+	GICC0->PMR             = 0x000000F0; // unmask all            interrupts
+	GICD0->ISENABLER[ 1 ] |= 0x00000010; // enable timer          interrupt
+	GICC0->CTLR            = 0x00000001; // enable GIC interface
+	GICD0->CTLR            = 0x00000001; // enable GIC distributor
+
+	irq_enable();
 }
 
 void kernel_handler_rst(ctx_t* ctx) {
@@ -56,17 +51,6 @@ void kernel_handler_rst(ctx_t* ctx) {
 	 *   processor via the IRQ interrupt signal, then
 	 * - enabling IRQ interrupts.
 	 */
-	TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
-	TIMER0->Timer1Ctrl     = 0x00000002; // select 32-bit   timer
-	TIMER0->Timer1Ctrl    |= 0x00000040; // select periodic timer
-	TIMER0->Timer1Ctrl    |= 0x00000020; // enable          timer interrupt
-	TIMER0->Timer1Ctrl    |= 0x00000080; // enable          timer
-
-	GICC0->PMR             = 0x000000F0; // unmask all            interrupts
-	GICD0->ISENABLER[ 1 ] |= 0x00000010; // enable timer          interrupt
-	GICC0->CTLR            = 0x00000001; // enable GIC interface
-	GICD0->CTLR            = 0x00000001; // enable GIC distributor
-	irq_enable();
 
 	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
 	pcb[ 0 ].pid      = 0;
@@ -112,6 +96,21 @@ void kernel_handler_irq(ctx_t* ctx) {
 	GICC0->EOIR = id;
 }
 
+void addPCB(pid_t cpid, pid_t ppid, ctx_t* ctx) {
+
+	memset (&pcb[ cpid ], 0, sizeof(pcb_t));
+
+	//pcb[ cpid ].parent   = ppid;
+	pcb[ cpid ].pid      = cpid;
+	pcb[ cpid ].ctx.pc   = pcb[ ppid ].ctx.pc;
+	pcb[ cpid ].ctx.cpsr = pcb[ ppid ].ctx.cpsr;
+	pcb[ cpid ].ctx.sp   = pcb[ ppid ].ctx.sp + (cpid - ppid) * 0x00001000;
+	memcpy( &pcb[ cpid ].ctx, ctx, sizeof(ctx_t));
+	/*	printS("Added ");
+		printInt(cpid);
+		printS("\n");*/
+}
+
 void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 	switch ( id ) {
@@ -135,9 +134,19 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		//The way fork works is that while running the process where it is called it forks the process exactly where it left of, creates a new process and continues form the
 		//place where the process where it was called left off.
 		//I have to increase stack size and than copy the currently running processes information
-		stack += 0x00001000;
-		nr ++;
-		printInt(nr);
+		pid_t ppid  = current->pid;
+		pid_t cpid  = nr;
+
+		if (nr < all) {
+			stack += 0x00001000;
+			nr ++;
+			addPCB(cpid, ppid, ctx);
+		} else {
+			printS("No more space for processes!");
+		}
+
+
+		/*printInt(nr);
 
 		memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
 		pcb[ nr - 1 ].pid      = nr - 1;
@@ -145,9 +154,10 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		pcb[ nr - 1 ].ctx.pc   = pcb[current -> pid].ctx.pc;
 		pcb[ nr - 1 ].ctx.sp   = pcb[current -> pid].ctx.sp + 0x00001000 * (nr - 1 - current -> pid);
 
-		memcpy( &pcb[nr - 1].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( &pcb[nr - 1].ctx, ctx, sizeof( ctx_t ) );*/
 
-		current = &pcb[ nr - 1 ];
+		//current = &pcb[ nr - 1 ];
+		ctx -> gpr[ 0 ] = cpid;
 
 		break;
 	}
@@ -177,22 +187,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		// ctx->gpr[ 0 ] = n;
 		break;
 	}
-
-	/*	case 0x04 :{ // read (*buffer)
-	      char*  buffer = ( char* )( ctx->gpr[ 0 ] );
-	      int index     = 0;
-	      int broken    = 1;
-
-	      while(broken){
-	        buffer[ index ] = PL011_getc( UART0 );
-	        if (buffer[ index ] == '\r')   broken = 0;
-	        PL011_putc( UART0, buffer[ index ] );
-	        index++;
-	      }
-
-	      ctx -> gpr[ 0 ] = index - 1;
-	    }*/
-
 
 	case 0x04 : { // exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
 		if (nr > 0) {

@@ -21,7 +21,11 @@ void P1() {
       printS("P1 ~~ ");
     }
     printS("\n");
+    fork();
+    printS("I want to fork");
+    //system_exit();
     yield();
+
   }
 
   //char* a = "hello world, I'm P1\n";
