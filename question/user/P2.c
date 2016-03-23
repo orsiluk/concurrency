@@ -11,33 +11,35 @@ uint32_t weight( uint32_t x ) {
 }
 
 void P2() {
+  //int n = 0;
 
-  while (1) {
-    int n = 10;
-    while (n > 0) {
-      n--;
-      printS("P2 -- ");
-    }
-    printS("\n");
-    yield();
+  // Used for testing
+  //while (1) {
+  int n = 10;
+  while (n > 0) {
+    n--;
+    printS("P2 -- ");
   }
-
-  /*  for ( uint32_t d = 10; d > 0 ; d -= 1 ) {
-      printS(b);
-    }*/
-
+  printS("\n");
+  yield();
+  //}
   /*  while ( 1 ) {
       // compute the Hamming weight of each x for 2^8 < x < 2^24
-      write(0, "Process 2 \n", 10 );
-                for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
-                  uint32_t r = weight( x );  // printf( "weight( %d ) = %d\n", x, r );
-                  //write( 0, b, 20 );
-                  write(0, "weight( " , 8 );
-                  printInt(x);
-                  write(0, " ) = ", 5 );
-                  printInt(r);
-                  write(0, "\n", 2);
-                }
+      for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+              if (n < 10) {
+                n++;
+              } else {
+                yield();
+              }
+        uint32_t r = weight( x );  // printf( "weight( %d ) = %d\n", x, r );
+        printS("weight( ");
+        printInt(x);
+        printS(" ) = ");
+        printInt(r);
+        printS("\n");
+
+      }
+      yield();
     }*/
 
   return;

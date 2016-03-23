@@ -25,45 +25,40 @@ void P0() {
       write(0, "Process 0 \n", 11 );
     }*/
   while ( 1 ) {
-    int n = 5;
+    int n = 0;
     //memset(res, 0, 20);
     //write(0, "Process 0 \n", 10 );
     // test whether each x for 2^8 < x < 2^24 is prime or not
-    /*          write(0, "pancakes\n", 10 );
+    write(0, "pancakes\n", 10 );
 
-              for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
-                int r = is_prime( x );
-                // printf( "is_prime( %d ) = %d\n", x, r );
+    for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+      int r = is_prime( x );
+      printS("is_prime( ");
+      printInt(x);
+      printS(" ) = ");
+      printInt(r);
+      printS("\n");
 
-                //strncpy(res, "is_prime(" , 9);
-                //strncat(res, itoa(x, buf, 10), strlen(x));
-                //strncat(res, xc, strlen(xc));
-                // strncat(res, ") = ", 4);
-                //strncat(res,  r , strlen(r));
-                //strncat(res, ")\n", 3);
-                write(0, "is_prime( " , 9 );
-                printInt(x);
-                write(0, " ) = ", 4 );
-                printInt(r);
-                write(0, "\n", 2);
-
-
-              }*/
-    /*    fork();
-        write(0, " pancakes :) \n", 11 );
-    */
-    while (n > 0) {
-      /*      printS("Read text: ");
-            read( x );
-            printS(x);
-            printS("\n");*/
-      n--;
-      printS(" P0 :) \n");
+      if (n < 100) {
+        n++;
+      } else {
+        yield();
+      }
     }
+    /*
+      // Used for testing
+        while (n > 0) {
+                printS("Read text: ");
+                read( x );
+                printS(x);
+                printS("\n");
+          n--;
+          printS(" P0 :) \n");
+        }
 
-    yield();
-    //system_exit();
-
+        yield();
+        //system_exit();
+    */
 
   }
 

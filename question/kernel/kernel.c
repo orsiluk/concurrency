@@ -210,7 +210,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 			nr --;
 		} else {
-			write(0, "no process to be deleted \n", 26);
+			printS("no process to be deleted \n");
 		}
 		break;
 	}
