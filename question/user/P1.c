@@ -23,7 +23,8 @@ void P1() {
     printS("\n");
     fork();
     printS("I want to fork");
-    //system_exit();
+    /*    system_exit();
+        printS("I exited");*/
     yield();
 
   }

@@ -14,7 +14,7 @@ void printInt(int i);
 
 int fork();
 
-void system_exit();
+int system_exit();
 
 void printS( char* text);
 

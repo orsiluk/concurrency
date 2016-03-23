@@ -56,9 +56,13 @@ int fork() {
 
 }
 
-void system_exit() {
-	asm volatile(
-	    "svc #4     \n");
+int system_exit() {
+	int r;
+	asm volatile("svc #4     \n"
+	             "mov %0, r0 \n"
+	             : "=r" (r));
+	return r;
+
 }
 
 

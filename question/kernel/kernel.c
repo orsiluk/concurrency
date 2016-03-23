@@ -12,6 +12,8 @@ void scheduler( ctx_t* ctx ) {
 	// For now, when I have a  new process (when I fork, for example I will increment nr_used so when the programm is running, printing it's name and the new process is
 	// the child of process two it will print 12321232....
 
+	//Change this so it would return to parent process if it was a child
+
 	if ( current != &pcb[ nr - 1 ] ) {// -1 because I started counting form 0
 		//printS(" not in last    ");
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
@@ -54,18 +56,21 @@ void kernel_handler_rst(ctx_t* ctx) {
 
 	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
 	pcb[ 0 ].pid      = 0;
+	pcb[ 0 ].parent   = 0;
 	pcb[ 0 ].ctx.cpsr = 0x50;
 	pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
 	pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
 
 	memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
 	pcb[ 1 ].pid      = 1;
+	pcb[ 1 ].parent   = 1;
 	pcb[ 1 ].ctx.cpsr = 0x50;
 	pcb[ 1 ].ctx.pc   = ( uint32_t )( entry_P1 );
 	pcb[ 1 ].ctx.sp   = ( uint32_t )(  &tos_P1 );
 
 	memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
 	pcb[ 2 ].pid      = 2;
+	pcb[ 2 ].parent   = 2;
 	pcb[ 2 ].ctx.cpsr = 0x50;
 	pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
 	pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
@@ -96,18 +101,19 @@ void kernel_handler_irq(ctx_t* ctx) {
 	GICC0->EOIR = id;
 }
 
-void addPCB(pid_t cpid, pid_t ppid, ctx_t* ctx) {
+void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 
-	memset (&pcb[ cpid ], 0, sizeof(pcb_t));
+	memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 	//pcb[ cpid ].parent   = ppid;
-	pcb[ cpid ].pid      = cpid;
-	pcb[ cpid ].ctx.pc   = pcb[ ppid ].ctx.pc;
-	pcb[ cpid ].ctx.cpsr = pcb[ ppid ].ctx.cpsr;
-	pcb[ cpid ].ctx.sp   = pcb[ ppid ].ctx.sp + (cpid - ppid) * 0x00001000;
-	memcpy( &pcb[ cpid ].ctx, ctx, sizeof(ctx_t));
+	pcb[ cp ].pid      = cp;
+	pcb[ cp ].parent   = pp;
+	pcb[ cp ].ctx.pc   = pcb[ pp ].ctx.pc;
+	pcb[ cp ].ctx.cpsr = pcb[ pp ].ctx.cpsr;
+	pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
+	memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
 	/*	printS("Added ");
-		printInt(cpid);
+		printInt(cp);
 		printS("\n");*/
 }
 
@@ -134,15 +140,15 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		//The way fork works is that while running the process where it is called it forks the process exactly where it left of, creates a new process and continues form the
 		//place where the process where it was called left off.
 		//I have to increase stack size and than copy the currently running processes information
-		pid_t ppid  = current->pid;
-		pid_t cpid  = nr;
+		pid_t pp  = current->pid;
+		pid_t cp  = nr;
 
 		if (nr < all) {
 			stack += 0x00001000;
 			nr ++;
-			addPCB(cpid, ppid, ctx);
+			addPCB(cp, pp, ctx);
 		} else {
-			printS("No more space for processes!");
+			printS("No more space for new processes!");
 		}
 
 
@@ -157,7 +163,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		memcpy( &pcb[nr - 1].ctx, ctx, sizeof( ctx_t ) );*/
 
 		//current = &pcb[ nr - 1 ];
-		ctx -> gpr[ 0 ] = cpid;
+		//ctx -> gpr[ 0 ] = cp;
+		scheduler(cp);
 
 		break;
 	}
@@ -188,26 +195,33 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		break;
 	}
 
-	case 0x04 : { // exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
+	case 0x04 : { // system_exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
 		if (nr > 0) {
-			stack -= 0x00001000;
+			int cp = current->pid;
+			int pp = pcb[ cp ].parent;
 			//printInt(004);
 			//printInt(nr);
+			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
+			memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
-			if (pcb[ nr - 1 ].pid == nr - 1) {
-				current = &pcb[ 0 ];
-			} else {
-				current = &pcb[ current -> pid + 1];
-			}
+			stack -= 0x00001000;
+			current = &pcb[ pp ];
+			/*		if (pcb[ current -> pid].pid == nr - 1) {
+						current = &pcb[ 0 ];
+					} else {
+						current = &pcb[ current -> pid + 1];
+					}*/
 
-			memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
+			//memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
+			ctx -> gpr[ 0 ] = 0;
 			nr --;
 		} else {
 			write(0, "no process to be deleted \n", 26);
 		}
 		//current = &pcb[ nr - 1 ]; // this is not good becasue this way you can only delete things frm the top of the stack
 
-		scheduler(&current->ctx);
+		//scheduler(&current->ctx);
 
 	}
 	default   : { // unknown
