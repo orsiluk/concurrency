@@ -51,7 +51,8 @@ int fork() {
 	    "svc #2     \n"
 	    "mov %0, r0 \n"
 	    : "=r" (r));
-
+	printS("fork r = ");
+	printInt(r);
 	return r;
 
 }

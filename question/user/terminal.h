@@ -5,6 +5,10 @@
 #include <stdint.h>
 
 #include "libc.h"
+#include "P0.h"
+#include "P1.h"
+#include "P2.h"
+
 extern void (*entry_terminal)();
 extern uint32_t tos_terminal;
 

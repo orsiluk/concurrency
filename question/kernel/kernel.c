@@ -3,9 +3,9 @@
 pcb_t pcb[ 5 ], *current = NULL; /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
 context. */
-uint32_t nr = 3; //contains the number of processes we currently have
-uint32_t all =  5; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
-uint32_t stack = (uint32_t) &tos_P2; //pointer to the top of the stack
+uint32_t nr = 4; //contains the number of processes we currently have
+uint32_t all =  6; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
+uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
 
 void scheduler( ctx_t* ctx ) {
 
@@ -89,7 +89,7 @@ void kernel_handler_rst(ctx_t* ctx) {
 
 
 
-	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+	current = &pcb[ 3 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
 	return;
 }
@@ -166,23 +166,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			printS("No more space for new processes!");
 		}
 
-
-		/*printInt(nr);
-
-		memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
-		pcb[ nr - 1 ].pid      = nr - 1;
-		pcb[ nr - 1 ].ctx.cpsr = pcb[current -> pid].ctx.cpsr; //current -> pid --- gets the pid
-		pcb[ nr - 1 ].ctx.pc   = pcb[current -> pid].ctx.pc;
-		pcb[ nr - 1 ].ctx.sp   = pcb[current -> pid].ctx.sp + 0x00001000 * (nr - 1 - current -> pid);
-
-		memcpy( &pcb[nr - 1].ctx, ctx, sizeof( ctx_t ) );*/
-
-		//current = &pcb[ nr - 1 ];
-		//ctx -> gpr[ 0 ] = cp;
-
-		// scheduler(cp);
-
-
 		break;
 	}
 
@@ -224,25 +207,15 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 			stack -= 0x00001000;
 			current = &pcb[ pp ];
-			//scheduler(&current->ctx);
-			/*		if (pcb[ current -> pid].pid == nr - 1) {
-						current = &pcb[ 0 ];
-					} else {
-						current = &pcb[ current -> pid + 1];
-					}*/
 
-			//memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
-			//ctx -> gpr[ 0 ] = 0;
 			nr --;
 		} else {
 			write(0, "no process to be deleted \n", 26);
 		}
-		//current = &pcb[ nr - 1 ]; // this is not good becasue this way you can only delete things frm the top of the stack
-
-		//scheduler(&current->ctx);
-
+		break;
 	}
 	default   : { // unknown
+		printS(" Something went wrong! \n");
 		break;
 	}
 
