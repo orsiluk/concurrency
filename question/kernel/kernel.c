@@ -13,8 +13,12 @@ void scheduler( ctx_t* ctx ) {
 	// the child of process two it will print 12321232....
 
 	//Change this so it would return to parent process if it was a child
-
-	if ( current != &pcb[ nr - 1 ] ) {// -1 because I started counting form 0
+	if (current -> pid != current -> parent) {
+		memcpy( &pcb[ current -> pid ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ current -> parent ].ctx, sizeof( ctx_t ) );
+		current = &pcb[ current -> parent ];
+	}
+	else if ( current != &pcb[ nr - 1 ] ) {// -1 because I started counting form 0
 		//printS(" not in last    ");
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
@@ -74,6 +78,13 @@ void kernel_handler_rst(ctx_t* ctx) {
 	pcb[ 2 ].ctx.cpsr = 0x50;
 	pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
 	pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
+
+	memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
+	pcb[ 3 ].pid      = 3;
+	pcb[ 3 ].parent = 3;
+	pcb[ 3 ].ctx.cpsr = 0x50;
+	pcb[ 3 ].ctx.pc   = ( uint32_t )( entry_terminal );
+	pcb[ 3 ].ctx.sp   = ( uint32_t )(  &tos_terminal );
 
 
 
@@ -147,6 +158,10 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			stack += 0x00001000;
 			nr ++;
 			addPCB(cp, pp, ctx);
+			memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+			memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+			current = &pcb[ cp ];
 		} else {
 			printS("No more space for new processes!");
 		}
@@ -164,7 +179,9 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		//current = &pcb[ nr - 1 ];
 		//ctx -> gpr[ 0 ] = cp;
-		scheduler(cp);
+
+		// scheduler(cp);
+
 
 		break;
 	}
