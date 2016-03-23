@@ -218,12 +218,13 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			int pp = pcb[ cp ].parent;
 			//printInt(004);
 			//printInt(nr);
-			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
-			memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
+			/*			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
+						memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );*/
 			memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 			stack -= 0x00001000;
 			current = &pcb[ pp ];
+			//scheduler(&current->ctx);
 			/*		if (pcb[ current -> pid].pid == nr - 1) {
 						current = &pcb[ 0 ];
 					} else {
@@ -231,7 +232,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 					}*/
 
 			//memset( &pcb[ nr - 1 ], 0, sizeof( pcb_t ) ); //clears the space for new things and puts 0s
-			ctx -> gpr[ 0 ] = 0;
+			//ctx -> gpr[ 0 ] = 0;
 			nr --;
 		} else {
 			write(0, "no process to be deleted \n", 26);
