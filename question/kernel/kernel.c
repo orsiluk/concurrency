@@ -6,7 +6,7 @@ context. */
 //uint32_t nr = 4; //contains the number of processes we currently have
 uint32_t all =  6; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
 int nrprocess = 0;
-int nr = 4;
+//int nr = 4;
 uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
 
 void scheduler( ctx_t* ctx ) {
@@ -17,7 +17,7 @@ void scheduler( ctx_t* ctx ) {
 		memcpy( ctx, &pcb[ current -> parent ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ current -> parent ];
 	}
-	else if ( current != &pcb[ nr - 1 ] ) {// -1 because I started counting form 0
+	else if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
 		//printS(" not in last    ");
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
@@ -25,7 +25,7 @@ void scheduler( ctx_t* ctx ) {
 	} else {
 		//printS(" IN last    ");
 		//printInt(nr - 1);
-		memcpy( &pcb[ nr ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( &pcb[ nrprocess ].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ 0 ];
 	}
@@ -38,9 +38,9 @@ void scheduler( ctx_t* ctx ) {
 			pcb[i].priority -= 1;
 		}
 	}
-}*/
+}
 
-/*int nextP(current) {
+int nextP(current) {
 	uint32_t found = -1;
 	uint32_t highest = -1;
 
@@ -65,6 +65,35 @@ void timer() {
 	irq_enable();
 }
 
+// Looks up if there are any processes deleted if not returns the top of the stack
+int findSlot() {
+	int place = -1;
+	for (int i = 0; i < nrprocess; i++) {
+		if (pcb[i].parent == -1) {
+			place = i;
+		}
+	}
+	if (place == -1) {
+		if (nrprocess < all) {
+			stack = stack + 0x00001000;
+			nrprocess++;
+			place = nrprocess - 1;
+		} else place = -1;
+	}
+	return (place);
+}
+
+void createProcess(uint32_t pc, uint32_t cpsr, uint32_t parent  ) {
+	pid_t pid = findSlot();
+	memset( &pcb[ pid ], 0, sizeof( pcb_t ) );
+	pcb[pid].parent   = parent;
+	pcb[ pid ].pid      = pid;
+	pcb[ pid ].ctx.cpsr = cpsr;
+	pcb[ pid ].ctx.pc   = pc;
+	pcb[ pid ].ctx.sp   = stack + pid * 0x00001000;
+	printS("Created a process! Yeyy! \n");
+}
+
 void kernel_handler_rst(ctx_t* ctx) {
 	/* Configure the mechanism for interrupt handling by
 	 *
@@ -77,38 +106,43 @@ void kernel_handler_rst(ctx_t* ctx) {
 
 	//timer();
 	//P0
-	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
-	pcb[ 0 ].pid      = 0;
-	pcb[ 0 ].parent   = 3;
-	pcb[ 0 ].ctx.cpsr = 0x50;
-	pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
-	pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
+	/*	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
+		pcb[ 0 ].pid      = 0;
+		pcb[ 0 ].parent   = 3;
+		pcb[ 0 ].ctx.cpsr = 0x50;
+		pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
+		pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
 
-	//P1
-	memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
-	pcb[ 1 ].pid      = 1;
-	pcb[ 1 ].parent   = 3;
-	pcb[ 1 ].ctx.cpsr = 0x50;
-	pcb[ 1 ].ctx.pc   = ( uint32_t )( entry_P1 );
-	pcb[ 1 ].ctx.sp   = ( uint32_t )(  &tos_P1 );
+		//P1
+		memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
+		pcb[ 1 ].pid      = 1;
+		pcb[ 1 ].parent   = 3;
+		pcb[ 1 ].ctx.cpsr = 0x50;
+		pcb[ 1 ].ctx.pc   = ( uint32_t )( entry_P1 );
+		pcb[ 1 ].ctx.sp   = ( uint32_t )(  &tos_P1 );
 
-	//P2
-	memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
-	pcb[ 2 ].pid      = 2;
-	pcb[ 2 ].parent   = 3;
-	pcb[ 2 ].ctx.cpsr = 0x50;
-	pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
-	pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
+		//P2
+		memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
+		pcb[ 2 ].pid      = 2;
+		pcb[ 2 ].parent   = 3;
+		pcb[ 2 ].ctx.cpsr = 0x50;
+		pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
+		pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
 
-	// Terminal
-	memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
-	pcb[ 3 ].pid      = 3;
-	pcb[ 3 ].parent = 3;
-	pcb[ 3 ].ctx.cpsr = 0x50;
-	pcb[ 3 ].ctx.pc   = ( uint32_t )( entry_terminal );
-	pcb[ 3 ].ctx.sp   = ( uint32_t )(  &tos_terminal );
+		// Terminal
+		memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
+		pcb[ 3 ].pid      = 3;
+		pcb[ 3 ].parent = 3;
+		pcb[ 3 ].ctx.cpsr = 0x50;
+		pcb[ 3 ].ctx.pc   = ( uint32_t )( entry_terminal );
+		pcb[ 3 ].ctx.sp   = ( uint32_t )(  &tos_terminal );*/
 
-	current = &pcb[ 3 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+// For some megical reason all Ps work even dough I don't define them. HOW?
+
+
+	createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
+
+	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
 	return;
 }
@@ -174,11 +208,9 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		//place where the process where it was called left off.
 		//I have to increase stack size and than copy the currently running processes information
 		pid_t pp  = current->pid;
-		pid_t cp  = nr;
+		pid_t cp  = findSlot(pp);
 
-		if (nr < all) {
-			stack += 0x00001000;
-			nr ++;
+		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 			memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
 			memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
@@ -219,22 +251,19 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	}
 
 	case 0x04 : { // system_exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
-		if (nr > 0) {
-			int cp = current->pid;
-			int pp = pcb[ cp ].parent;
-			//printInt(004);
-			//printInt(nr);
-			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
-			memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
-			memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
-			stack -= 0x00001000;
-			current = &pcb[ pp ];
+		int cp = current->pid;
+		int pp = pcb[ cp ].parent;
+		//printInt(004);
+		//printInt(nr);
+		memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
+		pcb[ cp ].parent = -1;
+		memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
-			nr --;
-		} else {
-			printS("no process to be deleted \n");
-		}
+		//stack -= 0x00001000;
+		current = &pcb[ pp ];
+
 		break;
 	}
 	default   : { // unknown
