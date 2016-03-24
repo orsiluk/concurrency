@@ -29,9 +29,10 @@ void P0() {
     //memset(res, 0, 20);
     //write(0, "Process 0 \n", 10 );
     // test whether each x for 2^8 < x < 2^24 is prime or not
-    write(0, "pancakes\n", 10 );
+    //write(0, "pancakes\n", 10 );
 
     for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+
       int r = is_prime( x );
       printS("is_prime( ");
       printInt(x);
@@ -39,11 +40,13 @@ void P0() {
       printInt(r);
       printS("\n");
 
-      if (n < 100) {
+      if (n < 21) {
         n++;
       } else {
+        // system_exit();
         yield();
       }
+
     }
     /*
       // Used for testing

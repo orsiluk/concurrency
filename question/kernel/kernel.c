@@ -1,16 +1,15 @@
 #include "kernel.h"
 
-pcb_t pcb[ 5 ], *current = NULL; /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
+pcb_t pcb[ 6 ], *current = NULL; /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
 context. */
-uint32_t nr = 4; //contains the number of processes we currently have
+//uint32_t nr = 4; //contains the number of processes we currently have
 uint32_t all =  6; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
+int nrprocess = 0;
+int nr = 4;
 uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
 
 void scheduler( ctx_t* ctx ) {
-
-	// For now, when I have a  new process (when I fork, for example I will increment nr_used so when the programm is running, printing it's name and the new process is
-	// the child of process two it will print 12321232....
 
 	//Change this so it would return to parent process if it was a child
 	if (current -> pid != current -> parent) {
@@ -32,6 +31,24 @@ void scheduler( ctx_t* ctx ) {
 	}
 
 }
+
+/*void incPrority() {
+	for (int i = 0; i < all; i++) {
+		if (pcb[i].priority > 0) {
+			pcb[i].priority -= 1;
+		}
+	}
+}*/
+
+/*int nextP(current) {
+	uint32_t found = -1;
+	uint32_t highest = -1;
+
+	for (int i = 0; i < nrprocess; i++) {
+
+	}
+}*/
+
 void timer() {
 
 	TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -58,36 +75,38 @@ void kernel_handler_rst(ctx_t* ctx) {
 	 * - enabling IRQ interrupts.
 	 */
 
+	//timer();
+	//P0
 	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
 	pcb[ 0 ].pid      = 0;
-	pcb[ 0 ].parent   = 0;
+	pcb[ 0 ].parent   = 3;
 	pcb[ 0 ].ctx.cpsr = 0x50;
 	pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
 	pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
 
+	//P1
 	memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
 	pcb[ 1 ].pid      = 1;
-	pcb[ 1 ].parent   = 1;
+	pcb[ 1 ].parent   = 3;
 	pcb[ 1 ].ctx.cpsr = 0x50;
 	pcb[ 1 ].ctx.pc   = ( uint32_t )( entry_P1 );
 	pcb[ 1 ].ctx.sp   = ( uint32_t )(  &tos_P1 );
 
+	//P2
 	memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
 	pcb[ 2 ].pid      = 2;
-	pcb[ 2 ].parent   = 2;
+	pcb[ 2 ].parent   = 3;
 	pcb[ 2 ].ctx.cpsr = 0x50;
 	pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
 	pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
 
+	// Terminal
 	memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
 	pcb[ 3 ].pid      = 3;
 	pcb[ 3 ].parent = 3;
 	pcb[ 3 ].ctx.cpsr = 0x50;
 	pcb[ 3 ].ctx.pc   = ( uint32_t )( entry_terminal );
 	pcb[ 3 ].ctx.sp   = ( uint32_t )(  &tos_terminal );
-
-
-
 
 	current = &pcb[ 3 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
@@ -104,7 +123,9 @@ void kernel_handler_irq(ctx_t* ctx) {
 	if ( id == GIC_SOURCE_TIMER0 ) {
 		//PL011_putc( UART0, 'T' );
 		TIMER0->Timer1IntClr = 0x01;
-		//scheduler(ctx);
+		if (current -> pid != 3) {
+			//scheduler(ctx);
+		}
 	}
 
 	// Step 5: write the interrupt identifier to signal we're done.
@@ -116,7 +137,6 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 
 	memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
-	//pcb[ cpid ].parent   = ppid;
 	pcb[ cp ].pid      = cp;
 	pcb[ cp ].parent   = pp;
 	pcb[ cp ].ctx.pc   = pcb[ pp ].ctx.pc;
@@ -132,6 +152,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 	switch ( id ) {
 	case 0x00 : { // yield()
+
+		//toTerminal(ctx);
 		scheduler( ctx );
 		break;
 	}
@@ -162,6 +184,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
 			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
 			current = &pcb[ cp ];
+			ctx -> gpr[ 0 ] = 0;
 		} else {
 			printS("No more space for new processes!");
 		}
@@ -201,8 +224,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			int pp = pcb[ cp ].parent;
 			//printInt(004);
 			//printInt(nr);
-			/*			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
-						memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );*/
+			memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
 			memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 			stack -= 0x00001000;

@@ -17,25 +17,35 @@ int findProcess(char* x, char* command ) {
 void chooseAction(char* x) {
 	// printS(" in chooseaction \n");
 	if (findProcess(x, "run P0") == 1) {
+		int f = fork();
 		// printS(x);
-		fork();
-		P0();
-		system_exit();
+		if (f == 0) {
+			P0();
+			system_exit();
+		}
 	}
 
 	else if (findProcess(x, "run P1") == 1)	{	//printS(x);
-		fork();
-		P1();
-		system_exit();
+		int f = fork();
+		// printS(x);
+		if (f == 0) {
+			P1();
+			system_exit();
+		}
 	}
 
 	else if (findProcess(x, "run P2") == 1)	{
+		int f = fork();
 		// printS(x);
-		fork();
-		P2();
-		system_exit();
+		if (f == 0) {
+			P2();
+			system_exit();
+		}
 	}
-	else printS("This is not a valid command!\n");
+	else {
+		printS("This is not a valid command!\n");
+		//system_exit();
+	}
 
 
 }

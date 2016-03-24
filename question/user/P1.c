@@ -47,9 +47,10 @@ void P1() {
         printInt(r);
         printS("\n");
 
-        if (n < 10) {
+        if (n < 21) {
           n++;
         } else {
+          // system_exit();
           yield();
         }
       }

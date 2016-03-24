@@ -30,7 +30,6 @@ int read(void* x ) {
 	              : "=r" (r)
 	              : "r" (x)
 	              : "r0");
-
 	return r;
 }
 
@@ -51,6 +50,7 @@ int fork() {
 	    "svc #2     \n"
 	    "mov %0, r0 \n"
 	    : "=r" (r));
+	printInt(r);
 	return r;
 
 }
