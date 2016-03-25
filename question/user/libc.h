@@ -18,6 +18,10 @@ int system_exit();
 
 void printS( char* text);
 
+// void exec();
+
+void kill(int p);
+
 //void readS(char* text);
 
 void yield();

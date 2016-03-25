@@ -33,7 +33,7 @@ void P2() {
       printInt(r);
       printS("\n");
 
-      if (n < 21) {
+      if (n < 5) {
         n++;
       } else {
         // system_exit();

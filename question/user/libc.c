@@ -21,18 +21,6 @@ int write( int fd, void* x, size_t n ) {
 }
 
 
-int read(void* x ) {
-	int r;
-
-	asm volatile( "mov r0, %1 \n"
-	              "svc #3     \n"
-	              "mov %0, r0 \n"
-	              : "=r" (r)
-	              : "r" (x)
-	              : "r0");
-	return r;
-}
-
 /*int read(void *text) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
@@ -55,6 +43,19 @@ int fork() {
 
 }
 
+int read(void* x ) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "svc #3     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (x)
+	              : "r0");
+	return r;
+}
+
+
 int system_exit() {
 	int r;
 	asm volatile("svc #4     \n"
@@ -64,6 +65,21 @@ int system_exit() {
 
 }
 
+/*void exec() {
+	//replace current process image with new process image,
+	//no return, since call point no longer exists (!)
+	asm volatile("svc #5     \n");
+
+}*/
+void kill(int p) {
+	int r;
+
+	asm volatile( "svc #5     \n"
+	              "mov r0, %0 \n"
+	              : "=r" (r)
+	              : "p" (p)
+	              : "r0");
+}
 
 void printInt(int i) {
 	if ( i > 10) {
