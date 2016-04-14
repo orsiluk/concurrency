@@ -56,7 +56,10 @@ int nextP() {
 		i++;
 	}
 	incPrority();
-	//pcb[found].priority++;
+
+	if (found != 0) {
+		pcb[found].priority++;
+	}
 	return found;
 }
 
@@ -64,15 +67,39 @@ void scheduler(ctx_t* ctx) {
 	// Priority based scheduler with hopefully aging implemented as well
 	// priority will be changed to be priority and will work such as: priority process will have higher
 	// prority than child, and ( Is this an auomated process or do I have a terminal from where I call processes?)
-	// FOr now I will desing it such that there is a terminal and there will be an execute function which
+
+	// For now I will desing it such that there is a terminal and there will be an execute function which
 	// will execute the next process in the priority queue, but this means that the processes are already
 	// predefined before execution, but you are still able to add processes (figure a way to do this)
 
+	// Question: Is it enough if it always retuns to the terminal or does it have to retun t te parent process? Like go back to P1 if we forked from P1?
+
+
+	// The way it works right now is that Termnal is the first element in the Q and it has priority 0
+	// so it will always be chosen when another process terminates. Also the process when it terminates
+	// exits, which is not great, because eventually will exit a process which I need in the Q.
+	// I am not sure what we are expected to do. :|
+	// If it shouldn't exit when it's not child process I can put an if in exit, and only exit if the
+	// process number is > than the predefined nr of processes. ( It will enevr exit predefined processes
+	// not even when I want to!)
 	int next = nextP();
 
 	memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
 	memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );
 	current = &pcb[ next ];
+}
+
+void schedulerR(ctx_t* ctx) {
+	// It is the round-robin scheduler, it can be changed so it would return to the parent process if needed
+	if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
+		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
+		current = &pcb[ current -> pid + 1 ];
+	} else {
+		memcpy( &pcb[ nrprocess ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
+		current = &pcb[ 0 ];
+	}
 }
 
 void killProcess(ctx_t* ctx , int p) {
@@ -98,7 +125,7 @@ void timer() {
 	irq_enable();
 }
 
-// Looks up if there are any processes deleted if not returns the top of the stack
+// Looks up if there are any processes deleted if not returns the top of the stack If no mor stack space can be allocated it retunrns -1
 int findSlot() {
 	int place = -1;
 	for (int i = 0; i < nrprocess; i++) {
@@ -138,45 +165,13 @@ void kernel_handler_rst(ctx_t* ctx) {
 	 */
 
 	//timer();
-	//P0
-	/*	memset( &pcb[ 0 ], 0, sizeof( pcb_t ) );
-		pcb[ 0 ].pid      = 0;
-		pcb[ 0 ].priority   = 3;
-		pcb[ 0 ].ctx.cpsr = 0x50;
-		pcb[ 0 ].ctx.pc   = ( uint32_t )( entry_P0 );
-		pcb[ 0 ].ctx.sp   = ( uint32_t )(  &tos_P0 );
-
-		//P1
-		memset( &pcb[ 1 ], 0, sizeof( pcb_t ) );
-		pcb[ 1 ].pid      = 1;
-		pcb[ 1 ].priority   = 3;
-		pcb[ 1 ].ctx.cpsr = 0x50;
-		pcb[ 1 ].ctx.pc   = ( uint32_t )( entry_P1 );
-		pcb[ 1 ].ctx.sp   = ( uint32_t )(  &tos_P1 );
-
-		//P2
-		memset( &pcb[ 2 ], 0, sizeof( pcb_t ) );
-		pcb[ 2 ].pid      = 2;
-		pcb[ 2 ].priority   = 3;
-		pcb[ 2 ].ctx.cpsr = 0x50;
-		pcb[ 2 ].ctx.pc   = ( uint32_t )( entry_P2 );
-		pcb[ 2 ].ctx.sp   = ( uint32_t )(  &tos_P2 );
-
-		// Terminal
-		memset( &pcb[ 3 ], 0, sizeof( pcb_t ) );
-		pcb[ 3 ].pid      = 3;
-		pcb[ 3 ].priority = 3;
-		pcb[ 3 ].ctx.cpsr = 0x50;
-		pcb[ 3 ].ctx.pc   = ( uint32_t )( entry_terminal );
-		pcb[ 3 ].ctx.sp   = ( uint32_t )(  &tos_terminal );*/
-
 // For some megical reason all Ps work even dough I don't define them. HOW?
 
 
 	createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
-	createProcess(( uint32_t )( entry_P0 ), 0x50, 2);
-	createProcess(( uint32_t )( entry_P1 ), 0x50, 0);
-	createProcess(( uint32_t )( entry_P2 ), 0x50, 1);
+	/*	createProcess(( uint32_t )( entry_P0 ), 0x50, 2);
+		createProcess(( uint32_t )( entry_P1 ), 0x50, 3);
+		createProcess(( uint32_t )( entry_P2 ), 0x50, 1);*/
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
@@ -208,7 +203,7 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 	memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 	pcb[ cp ].pid      = cp;
-	pcb[ cp ].priority   = pp;
+	pcb[ cp ].priority   = 3; // I set it to 3 for now
 	pcb[ cp ].ctx.pc   = pcb[ pp ].ctx.pc;
 	pcb[ cp ].ctx.cpsr = pcb[ pp ].ctx.cpsr;
 	pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
@@ -245,13 +240,23 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		pid_t pp  = current->pid;
 		pid_t cp  = findSlot(pp);
 
+
+		//fork() returns a zero to the newly created child process.
+		//fork() returns a positive value, the process ID of the child process, to the parent.
+
+
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 			memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+			//pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
 			memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
 			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+			pcb[pp].ctx.gpr[0] = cp;
+			// if i change ctx -> gpr[ 0 ] = 0; to the line below it has the right stuff in pcb gpr [0], but doesn't work, like this it doesn't but it works ??
+			//pcb[cp].ctx.gpr[0] = 0;
 			current = &pcb[ cp ];
 			ctx -> gpr[ 0 ] = 0;
+
 		} else {
 			printS("No more space for new processes!\n");
 		}
@@ -260,19 +265,12 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	}
 
 	case 0x03 : { // read( fd, x, n )
-		//int   fd = ( int   )( ctx->gpr[ 0 ] );
+
 		char*  x = ( char* )( ctx->gpr[ 0 ] );
-		//int    n = ( int   )( ctx->gpr[ 2 ] );
-
-		/*		for ( int i = 0; i < n - 1; i++ ) {
-					x[i] = PL011_getc( UART0);
-					PL011_putc(UART0, x[i]);
-				}*/
-
 		int i = 0;
 		x[0] = PL011_getc( UART0);
 		PL011_putc(UART0, x[0]);
-		//while (x[i] != 	'\x0D') {
+
 		while (x[i] != '\x0D') {
 			i++;
 			x[i] = PL011_getc( UART0);
@@ -281,47 +279,46 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		printS("\n");
 		ctx->gpr[ 0 ] = i - 1;
 
-		// ctx->gpr[ 0 ] = n;
 		break;
 	}
 
 	case 0x04 : { // system_exit --> exit terminates a process by deleting it form the list of processes and call the scheduler to decide where to go
 
 		int cp = current->pid;
-		//int pp = pcb[ cp ].priority;
-		//printInt(004);
-		//printInt(nr);
-		// memcpy( &pcb[ cp ].ctx, ctx, sizeof( ctx_t ) );
-		// memcpy( ctx, &pcb[ pp ].ctx, sizeof( ctx_t ) );
-		// memset (&pcb[ cp ], 0, sizeof(pcb_t));
 		pcb[ cp ].priority = -1;
-
 		//stack -= 0x00001000;
-		//current = &pcb[ pp ];
 		scheduler(ctx);
 		break;
 	}
+
 	case 0x05 : {
 		killProcess(ctx, ctx->gpr[0]);
 		break;
 	}
-	/*
-		case 0x05 : { // exec()
-			int cp = current->pid;
-			int pp = pcb[ cp ].priority;
+	// case 0x06 : {//share? DO I need this?
+//      int pid = ctx->gpr[0];
+//      int dat = ctx->gpr[1];
+//      do_share(pid, dat);
+//      ctx->gpr[0] = 0;
+//      break;
+//    }
 
-			pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
-			pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
-			//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
+	case 0x06 : { // exec()
+		int cp = current->pid;
+		int pp = pcb[ cp ].priority;
 
-					// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-					// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
-					// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+		pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
+		pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
+		//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
 
-			current = &pcb[ pp ];
+		// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+		// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
+		// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
 
-		}
-		*/
+		current = &pcb[ pp ];
+
+	}
+
 
 	default   : { // unknown
 		printS(" Something went wrong! \n");

@@ -40,4 +40,11 @@ typedef struct {
 	ctx_t ctx;
 } pcb_t;
 
+// Needed to define channels for IPC
+typedef struct {
+	void* channels[2];
+	pid_t chan_start;
+	pid_t chan_end;
+} ipc_t;
+
 #endif

@@ -5,6 +5,13 @@ For now, the aim of the terminal is to read in a massage which has to  be a
 command, for which the terminal would react by forking and starting to
 execute the chosen process. When finished it will return to the terminal.
 */
+
+/*
+Questions:
+
+1. Do we want to exit the process or just go bact to terminal where we left off?
+2. Is it ok if the terminal is a program?
+*/
 int findProcess(char* x, char* command ) {
 	// printS("in findprocess \n");
 	int c = 1;
@@ -17,11 +24,13 @@ int findProcess(char* x, char* command ) {
 void chooseAction(char* x) {
 	// printS(" in chooseaction \n");
 	if (findProcess(x, "run P0") == 1) {
+		//fork() returns a zero to the newly created child process.
+		//fork() returns a positive value, the process ID of the child process, to the parent.
 		int f = fork();
-		// printS(x);
+		printInt(f);
 		if (f == 0) {
 			P0();
-			system_exit();
+			//system_exit();
 		}
 	}
 
@@ -30,7 +39,7 @@ void chooseAction(char* x) {
 		// printS(x);
 		if (f == 0) {
 			P1();
-			system_exit();
+			// system_exit();
 		}
 	}
 
@@ -39,7 +48,7 @@ void chooseAction(char* x) {
 		// printS(x);
 		if (f == 0) {
 			P2();
-			system_exit();
+			// system_exit();
 		}
 	}
 	else {
@@ -55,7 +64,6 @@ void terminal() {
 
 	while (1) {
 		//printInt(i);
-		// Have to do somting with print sometimes it starts from the 0th position and doensn't display
 		printS("shelly$ ");
 		read( x );
 		//printS("\n");

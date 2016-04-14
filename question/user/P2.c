@@ -12,6 +12,7 @@ uint32_t weight( uint32_t x ) {
 
 void P2() {
   int n = 0;
+  printS( "Process 2: \n" );
   /*
     // Used for testing
     while (1) {
@@ -36,8 +37,8 @@ void P2() {
       if (n < 5) {
         n++;
       } else {
-        // system_exit();
-        yield();
+        system_exit();
+        //yield();
       }
     }
   }

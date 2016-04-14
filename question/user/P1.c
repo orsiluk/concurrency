@@ -32,7 +32,7 @@ void P1() {
     }*/
   int n = 0;
   while ( 1 ) {
-    write(0, "Process 1 \n", 11 );
+    printS( "Process 1: \n" );
     // compute the gcd between pairs of x and y for 2^8 < x, y < 2^24
     //write(0, "Process 1 \n", 10 );
     for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
@@ -50,8 +50,8 @@ void P1() {
         if (n < 5) {
           n++;
         } else {
-          // system_exit();
-          yield();
+          system_exit();
+          //yield();
         }
       }
     }

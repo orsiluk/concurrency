@@ -20,18 +20,6 @@ int write( int fd, void* x, size_t n ) {
 	return r;
 }
 
-
-/*int read(void *text) {
-	int r;
-	asm volatile( "mov r0, %1 \n"
-	              "svc #3     \n"
-	              "mov %0, r0 \n"
-	              : "=r" (r)
-	              : "r" (text)
-	              : "r0");
-	return r;
-}*/
-
 int fork() {
 	int r;
 	asm volatile(
@@ -40,7 +28,6 @@ int fork() {
 	    : "=r" (r));
 	//printInt(r);
 	return r;
-
 }
 
 int read(void* x ) {
@@ -65,12 +52,6 @@ int system_exit() {
 
 }
 
-/*void exec() {
-	//replace current process image with new process image,
-	//no return, since call point no longer exists (!)
-	asm volatile("svc #5     \n");
-
-}*/
 void kill(int p) {
 	int r;
 
@@ -79,6 +60,31 @@ void kill(int p) {
 	              : "=r" (r)
 	              : "p" (p)
 	              : "r0");
+}
+
+int execute(int pid) {
+	//replace current process image with new process image,
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #6     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (pid)
+	              : "r0");
+	return r;
+}
+
+// Create a channel
+int create_c( int chan_start, int chan_end) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "mov r1, %2 \n"
+	              "svc #7     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (chan_start), "r" (chan_end)
+	              : "r0", "r1");
+	return r;
 }
 
 void printInt(int i) {
@@ -93,9 +99,3 @@ void printS(char* text) {
 	int n = strlen(text);
 	write(0, text, n);
 }
-
-/*void readS(char* text) {
-	int n = strlen(text);
-	read(0, text, n);
-}*/
-//write printf for strings :)
