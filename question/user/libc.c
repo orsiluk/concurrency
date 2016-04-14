@@ -26,7 +26,6 @@ int fork() {
 	    "svc #2     \n"
 	    "mov %0, r0 \n"
 	    : "=r" (r));
-	//printInt(r);
 	return r;
 }
 
@@ -62,27 +61,27 @@ void kill(int p) {
 	              : "r0");
 }
 
-int execute(int pid) {
-	//replace current process image with new process image,
-	int r;
-	asm volatile( "mov r0, %1 \n"
-	              "svc #6     \n"
-	              "mov %0, r0 \n"
-	              : "=r" (r)
-	              : "r" (pid)
-	              : "r0");
-	return r;
-}
+// int execute(int pid) {
+// 	//replace current process image with new process image,
+// 	int r;
+// 	asm volatile( "mov r0, %1 \n"
+// 	              "svc #6     \n"
+// 	              "mov %0, r0 \n"
+// 	              : "=r" (r)
+// 	              : "r" (pid)
+// 	              : "r0");
+// 	return r;
+// }
 
 // Create a channel
-int create_c( int chan_start, int chan_end) {
+int create_c( int c_start, int c_end) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
 	              "mov r1, %2 \n"
 	              "svc #7     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (chan_start), "r" (chan_end)
+	              : "r" (c_start), "r" (c_end)
 	              : "r0", "r1");
 	return r;
 }

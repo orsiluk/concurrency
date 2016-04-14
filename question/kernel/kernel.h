@@ -42,9 +42,9 @@ typedef struct {
 
 // Needed to define channels for IPC
 typedef struct {
-	void* channels[2];
-	pid_t chan_start;
-	pid_t chan_end;
+	void* chanels[2];
+	pid_t c_start;
+	pid_t c_end;
 } ipc_t;
 
 #endif

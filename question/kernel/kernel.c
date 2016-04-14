@@ -1,14 +1,22 @@
 #include "kernel.h"
 
-pcb_t pcb[ 6 ], *current = NULL; /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
+pcb_t pcb[ 6 ], *current = NULL;
+/* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
 context. */
+
+pc_t ipc[ 6 ];
+/*
+Define a list of pipes the same way as I dedined pcbs
+*/
+
 //uint32_t nr = 4; //contains the number of processes we currently have
 uint32_t all =  6; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
 int nrprocess = 0;
 //int nr = 4;
 uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
-
+timer();
+ipcArray();
 /*
 	// This scheduler won't work now becuse the implementation changed, but with a few
 	// changes it can be fixed
@@ -213,6 +221,25 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 		printS("\n");*/
 }
 
+void ipcArray() {
+	for ( int i = 0; i < 6; i++ ) {
+		memset( &ipc[ i ], -1, sizeof( ipc ) );
+	}
+}
+int createPipe(int c_start, int c_end) {
+	int slot = -1;
+	for ( int i = 0; i < 6; i++ ) {
+		if ( ipc[ i ].c_end == -1 ) slot = i;
+	}
+	if (slot == -1) printS("No more space for new pipe");
+	else {
+		ipc[ slot ].c_start = c_start;
+		ipc[ slot ].c_end = c_end;
+	}
+
+	return slot;
+}
+
 void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 	switch ( id ) {
@@ -239,12 +266,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		//I have to increase stack size and than copy the currently running processes information
 		pid_t pp  = current->pid;
 		pid_t cp  = findSlot(pp);
-
-
 		//fork() returns a zero to the newly created child process.
 		//fork() returns a positive value, the process ID of the child process, to the parent.
-
-
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 			memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
@@ -291,7 +314,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		break;
 	}
 
-	case 0x05 : {
+	case 0x05 : {//kill
 		killProcess(ctx, ctx->gpr[0]);
 		break;
 	}
@@ -303,22 +326,31 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 //      break;
 //    }
 
-	case 0x06 : { // exec()
-		int cp = current->pid;
-		int pp = pcb[ cp ].priority;
+	// case 0x06 : { // exec()
 
-		pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
-		pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
-		//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
+	// 	int cp = current->pid;
+	// 	int pp = pcb[ cp ].priority;
 
-		// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-		// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
-		// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+	// 	pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
+	// 	pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
+	// 	//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
 
-		current = &pcb[ pp ];
+	// 	// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+	// 	// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
+	// 	// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+	// 	current = &pcb[ pp ];
+	// 	break;
 
+	// }
+
+	case 0x07 : {
+		int c_start  = ( int )(ctx -> gpr[0]);
+		int c_end  = ( int )(ctx -> gpr[1]);
+		int ipc = createPipe(c_start, c_end);
+
+		ctx -> gpr[0] = ipc;
+		break;
 	}
-
 
 	default   : { // unknown
 		printS(" Something went wrong! \n");
