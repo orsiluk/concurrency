@@ -18,10 +18,13 @@ int system_exit();
 
 void printS( char* text);
 
-// void exec();
+void execute(int pid);
 
 void kill(int p);
 
+int get_id();
+
+int create_c( int c_start, int c_end);
 //void readS(char* text);
 
 void yield();

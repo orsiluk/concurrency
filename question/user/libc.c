@@ -61,17 +61,17 @@ void kill(int p) {
 	              : "r0");
 }
 
-// int execute(int pid) {
-// 	//replace current process image with new process image,
-// 	int r;
-// 	asm volatile( "mov r0, %1 \n"
-// 	              "svc #6     \n"
-// 	              "mov %0, r0 \n"
-// 	              : "=r" (r)
-// 	              : "r" (pid)
-// 	              : "r0");
-// 	return r;
-// }
+void execute(int pid) {
+	//replace current process image with new process image,
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #6     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (pid)
+	              : "r0");
+	//return r;
+}
 
 // Create a channel
 int create_c( int c_start, int c_end) {
@@ -83,6 +83,14 @@ int create_c( int c_start, int c_end) {
 	              : "=r" (r)
 	              : "r" (c_start), "r" (c_end)
 	              : "r0", "r1");
+	return r;
+}
+
+int get_id() {
+	int r;
+	asm volatile( "svc #8     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r));
 	return r;
 }
 

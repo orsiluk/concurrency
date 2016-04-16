@@ -51,6 +51,14 @@ void chooseAction(char* x) {
 			// system_exit();
 		}
 	}
+	else if (findProcess(x, "run philosophers") == 1)	{
+		int f = fork();
+		// printS(x);
+		if (f == 0) {
+			philosophers();
+			// system_exit();
+		}
+	}
 	else {
 		printS("This is not a valid command!\n");
 		//system_exit();

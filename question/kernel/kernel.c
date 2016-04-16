@@ -1,22 +1,22 @@
 #include "kernel.h"
 
-pcb_t pcb[ 6 ], *current = NULL;
+pcb_t pcb[ 10 ], *current = NULL;
 /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
 context. */
 
-pc_t ipc[ 6 ];
+ipc_t ipc[ 10 ];
 /*
 Define a list of pipes the same way as I dedined pcbs
 */
 
 //uint32_t nr = 4; //contains the number of processes we currently have
-uint32_t all =  6; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 5 ] )
+uint32_t all =  10; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 10 ] )
 int nrprocess = 0;
 //int nr = 4;
 uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
-timer();
-ipcArray();
+
+//ipcArray();
 /*
 	// This scheduler won't work now becuse the implementation changed, but with a few
 	// changes it can be fixed
@@ -52,7 +52,7 @@ void incPrority() {
 
 int nextP() {
 	uint32_t found = -1;
-	uint32_t highest = 7;
+	uint32_t highest = 11;
 	int i = 0;
 	while (i < nrprocess) {
 		if (i != current->pid) {
@@ -222,13 +222,13 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 }
 
 void ipcArray() {
-	for ( int i = 0; i < 6; i++ ) {
+	for ( int i = 0; i < 10; i++ ) {
 		memset( &ipc[ i ], -1, sizeof( ipc ) );
 	}
 }
 int createPipe(int c_start, int c_end) {
 	int slot = -1;
-	for ( int i = 0; i < 6; i++ ) {
+	for ( int i = 0; i < 10; i++ ) {
 		if ( ipc[ i ].c_end == -1 ) slot = i;
 	}
 	if (slot == -1) printS("No more space for new pipe");
@@ -326,29 +326,39 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 //      break;
 //    }
 
-	// case 0x06 : { // exec()
+	case 0x06 : { // exec(pid)
+		// I want this function to execute a process with a certain pid fead into it
+		int   pid = ( int   )( ctx->gpr[ 0 ] );
+		memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ pid ].ctx, sizeof( ctx_t ) );
+		current = &pcb[ pid ];
 
-	// 	int cp = current->pid;
-	// 	int pp = pcb[ cp ].priority;
+		/*		int cp = current->pid;
+				int pp = pcb[ cp ].priority;
 
-	// 	pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
-	// 	pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
-	// 	//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
+				pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
+				pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
+				//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
 
-	// 	// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-	// 	// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
-	// 	// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
-	// 	current = &pcb[ pp ];
-	// 	break;
+				// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+				// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
+				// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+				current = &pcb[ pp ];*/
+		break;
 
-	// }
+	}
 
-	case 0x07 : {
+	case 0x07 : { // create_c( int c_start, int c_end)
 		int c_start  = ( int )(ctx -> gpr[0]);
 		int c_end  = ( int )(ctx -> gpr[1]);
 		int ipc = createPipe(c_start, c_end);
 
 		ctx -> gpr[0] = ipc;
+		break;
+	}
+	case 0x08 : { // get_id()
+
+		ctx -> gpr[0] = current -> pid;
 		break;
 	}
 
