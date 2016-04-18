@@ -12,6 +12,10 @@ Questions:
 1. Do we want to exit the process or just go bact to terminal where we left off?
 2. Is it ok if the terminal is a program?
 */
+
+int start;
+int end;
+
 int findProcess(char* x, char* command ) {
 	// printS("in findprocess \n");
 	int c = 1;
@@ -27,10 +31,17 @@ void chooseAction(char* x) {
 		//fork() returns a zero to the newly created child process.
 		//fork() returns a positive value, the process ID of the child process, to the parent.
 		int f = fork();
-		printInt(f);
+		//printInt(f);
 		if (f == 0) {
 			P0();
 			//system_exit();
+			printS("why here P00");
+		} else {
+			printS("why here P0");
+			yield();
+			printS("yielded");
+			return;
+
 		}
 	}
 
@@ -39,7 +50,12 @@ void chooseAction(char* x) {
 		// printS(x);
 		if (f == 0) {
 			P1();
-			// system_exit();
+			printS("why here P01");
+			system_exit();
+		} else {
+			printS("why here P1");
+			yield();
+
 		}
 	}
 
@@ -49,27 +65,57 @@ void chooseAction(char* x) {
 		if (f == 0) {
 			P2();
 			// system_exit();
+		} else {
+			yield();
+
 		}
 	}
-	else if (findProcess(x, "run philosophers") == 1)	{
+	else if (findProcess(x, "run philo") == 1)	{
 		int f = fork();
 		// printS(x);
 		if (f == 0) {
 			philosophers();
-			// system_exit();
+			system_exit();
+		} else {
+			yield();
+
 		}
 	}
+	else if (findProcess(x, "talk1") == 1)	{
+		int f = fork();
+		// printS(x);
+		//execute(0);
+		if (f == 0) {
+			talk1();
+			system_exit();
+		} else {
+			yield();
+
+		}
+	}
+	else if (findProcess(x, "talk2") == 1)	{
+		int f = fork();
+		// printS(x);
+		//execute(0);
+		if (f == 0) {
+			talk2();
+			system_exit();
+		} else {
+			yield();
+
+		}
+	}
+
 	else {
 		printS("This is not a valid command!\n");
 		//system_exit();
 	}
-
-
 }
 
 void terminal() {
 	char x[50];
 
+	int chan = create_c(1, 2);
 	while (1) {
 		//printInt(i);
 		printS("shelly$ ");

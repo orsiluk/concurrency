@@ -27,6 +27,12 @@ int get_id();
 int create_c( int c_start, int c_end);
 //void readS(char* text);
 
+void writeC(int chanid, int cstick);
+
+int readC(int chanid);
+
 void yield();
+
+// int createP();
 
 #endif

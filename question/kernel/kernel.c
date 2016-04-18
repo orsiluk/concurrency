@@ -1,5 +1,6 @@
 #include "kernel.h"
 
+void ipcArray();
 pcb_t pcb[ 10 ], *current = NULL;
 /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
@@ -12,11 +13,11 @@ Define a list of pipes the same way as I dedined pcbs
 
 //uint32_t nr = 4; //contains the number of processes we currently have
 uint32_t all =  10; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 10 ] )
+int pipes = 0; // The number of open channels
 int nrprocess = 0;
-//int nr = 4;
-uint32_t stack = (uint32_t) &tos_terminal; //pointer to the top of the stack
+uint32_t stack = (uint32_t) &tos_terminal + 0x00001000; //pointer to the top of the stack
 
-//ipcArray();
+
 /*
 	// This scheduler won't work now becuse the implementation changed, but with a few
 	// changes it can be fixed
@@ -72,6 +73,9 @@ int nextP() {
 }
 
 void scheduler(ctx_t* ctx) {
+	// This is very messy, clean it up before subbmitting
+
+
 	// Priority based scheduler with hopefully aging implemented as well
 	// priority will be changed to be priority and will work such as: priority process will have higher
 	// prority than child, and ( Is this an auomated process or do I have a terminal from where I call processes?)
@@ -108,14 +112,15 @@ void schedulerR(ctx_t* ctx) {
 		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ 0 ];
 	}
+	if (pcb[current->pid].priority == -1) {
+		schedulerR(ctx);
+	}
 }
 
 void killProcess(ctx_t* ctx , int p) {
 	pcb[p].priority = -1;
 	scheduler(ctx);
 }
-
-
 
 void timer() {
 
@@ -151,7 +156,7 @@ int findSlot() {
 	return (place);
 }
 
-void createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
+int createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	pid_t pid = findSlot();
 	memset( &pcb[ pid ], 0, sizeof( pcb_t ) );
 	pcb[ pid ].priority   = priority;
@@ -159,7 +164,8 @@ void createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	pcb[ pid ].ctx.cpsr = cpsr;
 	pcb[ pid ].ctx.pc   = pc;
 	pcb[ pid ].ctx.sp   = stack + pid * 0x00001000;
-	printS("Created a process! Yeyy! \n");
+	//printS("Created a process! Yeyy! \n");
+	return pid;
 }
 
 void kernel_handler_rst(ctx_t* ctx) {
@@ -175,14 +181,11 @@ void kernel_handler_rst(ctx_t* ctx) {
 	//timer();
 // For some megical reason all Ps work even dough I don't define them. HOW?
 
+	ipcArray();
 
-	createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
-	/*	createProcess(( uint32_t )( entry_P0 ), 0x50, 2);
-		createProcess(( uint32_t )( entry_P1 ), 0x50, 3);
-		createProcess(( uint32_t )( entry_P2 ), 0x50, 1);*/
+	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
-
 	return;
 }
 
@@ -222,20 +225,29 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 }
 
 void ipcArray() {
+
 	for ( int i = 0; i < 10; i++ ) {
 		memset( &ipc[ i ], -1, sizeof( ipc ) );
 	}
 }
-int createPipe(int c_start, int c_end) {
-	int slot = -1;
-	for ( int i = 0; i < 10; i++ ) {
-		if ( ipc[ i ].c_end == -1 ) slot = i;
+
+int getIpcSlot() {
+	for ( int i = 0; i < 8; i++ ) {
+		if ( ipc[ i ].c_end == -1 ) return i;
 	}
-	if (slot == -1) printS("No more space for new pipe");
-	else {
+
+	return -1;
+}
+
+int createPipe(int c_start, int c_end) {
+	int slot = getIpcSlot();
+
+	// Find slot for next pcb
+	if (slot > -1) {
 		ipc[ slot ].c_start = c_start;
 		ipc[ slot ].c_end = c_end;
-	}
+		ipc[ slot ].buff = -1;
+	} else printS("No more space for pipes");
 
 	return slot;
 }
@@ -245,7 +257,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	switch ( id ) {
 	case 0x00 : { // yield()
 
-		scheduler( ctx );
+		schedulerR( ctx );
 		break;
 	}
 	case 0x01 : { // write( fd, x, n )
@@ -266,19 +278,28 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		//I have to increase stack size and than copy the currently running processes information
 		pid_t pp  = current->pid;
 		pid_t cp  = findSlot(pp);
+
+		uint32_t sp = ctx->sp;
 		//fork() returns a zero to the newly created child process.
 		//fork() returns a positive value, the process ID of the child process, to the parent.
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
-			memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-			//pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
+
+			uint32_t sp2 = sp + (cp - pp) * 0x00001000;
+			uint32_t stackSpaceA  = stack + (cp - 1) * 0x00001000;
+			uint32_t stackSpaceB  = stack + (pp - 1) * 0x00001000;
+
+			memcpy(stackSpaceA, stackSpaceB, 0x00001000);
+			ctx->gpr[0] = cp;
+			pcb[cp].ctx.gpr[0] = 0;
+			pcb[cp].ctx.sp = sp2;
+
 			memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
 			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
-			pcb[pp].ctx.gpr[0] = cp;
-			// if i change ctx -> gpr[ 0 ] = 0; to the line below it has the right stuff in pcb gpr [0], but doesn't work, like this it doesn't but it works ??
-			//pcb[cp].ctx.gpr[0] = 0;
 			current = &pcb[ cp ];
-			ctx -> gpr[ 0 ] = 0;
+			pcb[pp].ctx.sp = sp;
+			printInt((int)stackSpaceA - sp2);
+			printInt((int)stackSpaceB - sp);
 
 		} else {
 			printS("No more space for new processes!\n");
@@ -309,41 +330,21 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		int cp = current->pid;
 		pcb[ cp ].priority = -1;
-		//stack -= 0x00001000;
-		scheduler(ctx);
+		schedulerR(ctx);
 		break;
 	}
 
-	case 0x05 : {//kill
-		killProcess(ctx, ctx->gpr[0]);
-		break;
-	}
-	// case 0x06 : {//share? DO I need this?
-//      int pid = ctx->gpr[0];
-//      int dat = ctx->gpr[1];
-//      do_share(pid, dat);
-//      ctx->gpr[0] = 0;
-//      break;
-//    }
+	// case 0x05 : {//kill
+	// 	killProcess(ctx, ctx->gpr[0]);
+	// 	break;
+	// }
 
-	case 0x06 : { // exec(pid)
+	case 0x06 : { // execute(pid)
 		// I want this function to execute a process with a certain pid fead into it
 		int   pid = ( int   )( ctx->gpr[ 0 ] );
 		memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ pid ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ pid ];
-
-		/*		int cp = current->pid;
-				int pp = pcb[ cp ].priority;
-
-				pcb[ pp ].ctx.pc   = pcb[ cp ].ctx.pc;
-				pcb[ pp ].ctx.cpsr = pcb[ cp ].ctx.cpsr;
-				//pcb[ pp ].ctx.sp   = pcb[ cp ].ctx.sp + (cp - pp) * 0x00001000;
-
-				// memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-				// memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
-				// memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
-				current = &pcb[ pp ];*/
 		break;
 
 	}
@@ -353,14 +354,39 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		int c_end  = ( int )(ctx -> gpr[1]);
 		int ipc = createPipe(c_start, c_end);
 
-		ctx -> gpr[0] = ipc;
+		ctx -> gpr[0] = ipc; // ipc is the value which shows where is this channel in ipc list
 		break;
 	}
 	case 0x08 : { // get_id()
-
 		ctx -> gpr[0] = current -> pid;
 		break;
 	}
+	case 0x09 : { // writeC(chanid, cstick) - cstick is 0 if asking 1 if giving
+		int chanid = ( int )(ctx -> gpr[0]);
+		int cstick = ( int )(ctx -> gpr[1]);
+
+		if (ipc[chanid].buff == -1) ipc[chanid].buff = cstick;
+		else printS(" You first need to read from channel");
+
+		break;
+	}
+	case 10 : { // readC(chanid)
+		int chanid = ( int )(ctx -> gpr[0]);
+
+		if (ipc[chanid].buff != -1) {
+			ctx -> gpr[0] = ipc[chanid].buff;
+			ipc[chanid].buff = -1;
+		} else {
+			printS(" Nothing to read.");
+			ctx -> gpr[0] = 0;
+		}
+
+		break;
+	}
+	// case 0x011: { //createP() //It loads the "talk" file for now but it can be overwritten
+	// 	int ipc = createProcess(( uint32_t )( entry_talk ), 0x50, 0);
+	// 	ctx -> gpr[0] = ipc;
+	// }
 
 	default   : { // unknown
 		printS(" Something went wrong! \n");

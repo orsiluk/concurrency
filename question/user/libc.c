@@ -1,10 +1,12 @@
 #include "libc.h"
 #include <string.h>
 
+// Find the next process to be executed
 void yield() {
 	asm volatile( "svc #0     \n"  );
 }
 
+// Write to screen
 int write( int fd, void* x, size_t n ) {
 	int r;
 
@@ -20,6 +22,7 @@ int write( int fd, void* x, size_t n ) {
 	return r;
 }
 
+//Fork current process
 int fork() {
 	int r;
 	asm volatile(
@@ -28,7 +31,7 @@ int fork() {
 	    : "=r" (r));
 	return r;
 }
-
+// Read from keyboard
 int read(void* x ) {
 	int r;
 
@@ -41,7 +44,7 @@ int read(void* x ) {
 	return r;
 }
 
-
+// exit currently running process
 int system_exit() {
 	int r;
 	asm volatile("svc #4     \n"
@@ -51,6 +54,7 @@ int system_exit() {
 
 }
 
+// kill process p
 void kill(int p) {
 	int r;
 
@@ -61,6 +65,7 @@ void kill(int p) {
 	              : "r0");
 }
 
+// Execute process pid
 void execute(int pid) {
 	//replace current process image with new process image,
 	int r;
@@ -86,6 +91,7 @@ int create_c( int c_start, int c_end) {
 	return r;
 }
 
+// Get the id of current process
 int get_id() {
 	int r;
 	asm volatile( "svc #8     \n"
@@ -94,6 +100,35 @@ int get_id() {
 	return r;
 }
 
+void writeC(int chanid, int cstick) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "mov r1, %2 \n"
+	              "svc #9     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (chanid), "r" (cstick)
+	              : "r0", "r1");
+}
+
+int readC(int chanid) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #10     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (chanid)
+	              : "r0");
+	//return r;
+}
+int createP() {
+	int r;
+	asm volatile( "svc #11     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r));
+	return r;
+}
+// Print integer
 void printInt(int i) {
 	if ( i > 10) {
 		printInt(i / 10);
@@ -102,6 +137,7 @@ void printInt(int i) {
 	write(0, &digit, 1);
 }
 
+//Print string - Implemented to make it simpler to print
 void printS(char* text) {
 	int n = strlen(text);
 	write(0, text, n);

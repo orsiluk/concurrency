@@ -14,6 +14,8 @@
 #include "P0.h"
 #include "P1.h"
 #include "P2.h"
+#include "talk.h"
+#include "philosophers.h"
 #include "terminal.h"
 
 /* The kernel source code is made simpler by three type definitions:
@@ -42,7 +44,9 @@ typedef struct {
 
 // Needed to define channels for IPC
 typedef struct {
-	void* chanels[2];
+	// void * 1to2[5];
+	// void * 2to1[5];
+	int buff;
 	pid_t c_start;
 	pid_t c_end;
 } ipc_t;
