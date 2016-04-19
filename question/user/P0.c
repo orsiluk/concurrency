@@ -24,53 +24,48 @@ void P0() {
   /*  for ( uint32_t d = 10; d > 0 ; d -= 1 ) {
       write(0, "Process 0 \n", 11 );
     }*/
-  fork();
-  printS("fork?");
-  // int i = get_id();
-  // printInt(i);
-  system_exit();
-  printS("should not be here ever");
-  // while ( 1 ) {
-  //   int n = 0;
-  //   printS( "Process 0: \n" );
-  //   //memset(res, 0, 20);
-  //   //write(0, "Process 0 \n", 10 );
-  //   // test whether each x for 2^8 < x < 2^24 is prime or not
-  //   //write(0, "pancakes\n", 10 );
 
-  //   for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
-  //     int r = is_prime( x );
-  //     printS("is_prime( ");
-  //     printInt(x);
-  //     printS(" ) = ");
-  //     printInt(r);
-  //     printS("\n");
+  while ( 1 ) {
+    int n = 0;
+    printS( "Process 0: \n" );
+    //memset(res, 0, 20);
+    //write(0, "Process 0 \n", 10 );
+    // test whether each x for 2^8 < x < 2^24 is prime or not
+    //write(0, "pancakes\n", 10 );
 
-  //     if (n < 5) {
-  //       n++;
-  //     } else {
-  //       system_exit();
-  //       //yield();
-  //     }
+    for ( uint32_t x = ( 1 << 8 ); x < ( 1 << 24 ); x++ ) {
+      int r = is_prime( x );
+      printS("is_prime( ");
+      printInt(x);
+      printS(" ) = ");
+      printInt(r);
+      printS("\n");
 
-  //   }
-  //   /*
-  //     // Used for testing
-  //       while (n > 0) {
-  //               printS("Read text: ");
-  //               read( x );
-  //               printS(x);
-  //               printS("\n");
-  //         n--;
-  //         printS(" P0 :) \n");
-  //       }
+      if (n < 5) {
+        n++;
+      } else {
+        system_exit();
+        //yield();
+      }
 
-  //       yield();
-  //       //system_exit();
-  //   */
+    }
+    /*
+      // Used for testing
+        while (n > 0) {
+                printS("Read text: ");
+                read( x );
+                printS(x);
+                printS("\n");
+          n--;
+          printS(" P0 :) \n");
+        }
 
-  // }
+        yield();
+        //system_exit();
+    */
 
-  //return;
+  }
+
+  return;
 }
 void (*entry_P0)() = &P0;

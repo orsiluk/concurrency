@@ -4,6 +4,15 @@
 The attempt is to implement Chandy/Misra solution for Dining Philosophers problem
 */
 
+/*
+When a Philo needs a fork, he asks his neighbor for his fork. When his neighbor gets the request:
+
+~ if his fork is clean, he keeps it.
+~ if his fork is dirty, he cleans it and sends it over.
+When a Philo has eaten, all his forks become dirty.
+
+*/
+
 typedef struct {
 	int id;			// Philosopher ID
 	int pid;		// Process ID
@@ -19,11 +28,16 @@ typedef struct {
 
 } philosopher;
 
-philosopher philo;
+philosopher philo[5];
 int p[5]; // This array contains the pid of the ith philosopher -> Now I know which to exeute if needed
 int chan_circ[5]; // Channel circle -> chan_circ[0] for 0-1 , chan_circ[1] for 1-2 ... chan_circ[4] for 4-0
+//int stick[5]; //-1 if dirty 0 if not there 1 if clean
+
 int ppID = 1;  // parent process ID
 int setup = 0; // I turn it int 1 when setup is over
+int c = 0;
+int id = 0;
+int s = 0;
 
 // If I write a function in kernel.c get_id with which I can found out the ID of the current process
 // I fork 5 times and I create only one philosopher in each fork, and have the parent process handle the table and procedures
@@ -37,40 +51,39 @@ they are hugry ...
 This might work.
 */
 // Have to find a way to switch between processes (ik, yield, but I want to spacify where to go, need to write another yield)
-void setupTable() {
+void setupTable(int f, int i) {
 	// ppID = get_id();
-	for (int i = 0; i < 5; i++) {
 
-		if (setup == 0) {
-			int f = fork(); // fork returns 0 the child and childID to the parent
-			int cid;
+	int cid;
 
-			if (f == 0) { // If it is a child
-				//setup = 1;
-				cid = get_id();
-				philo.id = i;
-				philo.pid = cid;
-				philo.hungry = 1;
-				// philo.lc = -1;
-				// philo.rc = -1;
-				if (i == 0) {
-					philo.lstick = 4;
-					philo.rstick = i;
-					philo.lnb = 4;
-					philo.rnb = 1;
-				} else if (i == 4) {
-					philo.lstick = 0;
-					philo.rstick = i;
-					philo.lnb = 3;
-					philo.rnb = 0;
-				} else {
-					philo.lstick = i - 1;
-					philo.rstick = i;
-					philo.lnb = i - 1;
-					philo.rnb = i + 1;
-				}
+//For every Philosopher, give the fork to the guy with the smaller id
 
-				printS("It is child ");
+	if (f == 0) { // If it is a child
+		//setup = 1;
+		cid = get_id();
+		philo[i].id = i;
+		philo[i].pid = cid;
+		philo[i].hungry = 1;
+		// philo.lc = -1;
+		// philo.rc = -1;
+		if (i == 0) {
+			philo[i].lstick = 1; // Has stick form left but dirty
+			philo[i].rstick = 1; // Has stick form right but dirty
+			philo[i].lnb = 4;
+			philo[i].rnb = 1;
+		} else if (i == 4) {
+			philo[i].lstick = 0; // Has no stick
+			philo[i].rstick = 0; // Has no stick
+			philo[i].lnb = 3;
+			philo[i].rnb = 0;
+		} else {
+			philo[i].lstick = 0;
+			philo[i].rstick = 1;
+			philo[i].lnb = i - 1;
+			philo[i].rnb = i + 1;
+		}
+
+		/*		printS("It is child ");
 				printInt(cid);
 				printS("\n");
 				printS("Info id pid hungry lc rc lstick rstick lnb rnb");
@@ -89,21 +102,13 @@ void setupTable() {
 				printS("  ");
 				printInt(philo.rnb);
 				printS("\n");
-				printS("\n");
+				printS("\n");*/
 
-			} else {
-				// printS("P[i] = ");
-				p[i] = f; // If in parent, save the id of child
-				// printInt(p[i]);
-			}
-			execute(ppID); // After setting up one philosopher in the fork return to parent process
-		}
+	} else {
+		// printS("P[i] = ");
+		p[i] = f; // If in parent, save the id of child
+		// printInt(p[i]);
 	}
-	if (setup == 0) {
-		printS("For loop is over -- Table setup over");
-		printS("\n");
-	}
-	// With this command I can go back to process 1 but it doesn't know that I already forked ad it keeps creating forks how to fix dis? :D
 }
 
 void setupChan() {
@@ -127,12 +132,82 @@ void setupChan() {
 	1. getting stick
 */
 
+/*
+I don't ever have to go in the forks again
+*/
+void think(int id) {
+	printInt(id);
+	printS("th philosopher is thinking \n");
+	runT();
+	printInt(id);
+	printS(" Done thinking \n");
+}
+
+void sticks(int id) {
+	//printS("p1\n");
+	if (philo[id].lstick == 1 && philo[id].rstick == 1) {
+		//printS("In sticks\n");
+		printS("Philosopher "); printInt(id); printS(" is eating\n");
+		runT();
+		printS("Done eating \n");
+		writeC(id, 1); //id == with chanelid to right neighbour
+		philo[id].rstick = 0;
+		writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
+		philo[id].lstick = 0;
+
+		philo[id].hungry = 0;
+	} /*else if (philo[id].rstick == -1) {
+		writeC(id, 1); //id == with chanelid to right neighbour
+		philo[id].rstick = 0;
+	}
+	else if (philo[id].lstick == -1) {
+		writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
+		philo[id].lstick = 0;
+	}*/
+	else if (philo[id].rstick == 0) {
+		//printS("p2\n");
+		philo[id].rstick = readC(id);
+	}
+	else if (philo[id].lstick == 0) {
+		//printS("p3\n");
+		philo[id].lstick = readC(philo[id].lnb);
+	}
+	return;
+}
+
+
+void start() {
+	int i = 0;
+	while (i < 50) {
+		// if (id < 5) {
+
+		int id = get_id() - 2;
+
+		if (philo[id].hungry == 0) {
+			think(id);
+			runT();
+			philo[id].hungry = 1;
+		}
+		else {
+
+			printS("Philosopher "); printInt(id); printS(" is houngry\n");
+
+			sticks(id);
+
+
+		}
+		i++;
+		//id++;
+		//} else {
+
+		//	id = 0;
+		//}
+	}
+}
+
 void philosophers() {
 	// Set up the table with philosophers and sticks
 	// Every fork has one philosopher in it and they don't know anything about the others
-
-	// BUUUG : get_id() doesn't return the right thing and fucks up everything
-
 	/*
 		It is not working because of one simple reason: When you fork, you fork a process ( FUNCTION!! ) not a file
 		So even dough I call execute in philosophers, it will try to execute wherever it was left off when I left it the last time
@@ -141,24 +216,43 @@ void philosophers() {
 
 
 	printS("Start philosophers! \n");
-	int current = get_id();
+//	int current = get_id();
 	// printS("current=");
 	// printInt(current);
-	printS("\n");
-	if (current == 1 && setup == 0) {
-		setupTable();
-		setupChan();
-		printS("Channel setup done. \n");
+
+	if (setup == 0) {
+		for (int i = 0; i < 5; i++) {
+
+			if (setup == 0) {
+				int f = fork(); // fork returns 0 the child and childID to the parent
+				setupTable(f, i);
+				execute(ppID);
+			}
+		}
 		setup = 1;
 	}
-	if (setup == 1) {
-		printS("Want to execute p[0]");
-		execute(p[0]);
+	if (c == 0) {
+		printS("For loop is over -- Table setup over\n");
+		setupChan();
+		printS("Channel setup done. \n");
+		c = 1;
+
+	}
+
+	execute(p[0]);
+
+	start();
+	/*if (setup == 1) {
+		if (id == 0) {
+			id++;
+			printS("Want to execute p[0]\n");
+			execute(p[id - 1]);
+		}
 		// printInt(p[0]);
 		int thisP = get_id();
 		printInt(thisP);
 		if (thisP == p[0] ) {
-			printS("\n Writing to channel 0 \n");
+			printS("Writing to channel 0 \n");
 			writeC(chan_circ[0], 9);
 			execute(p[1]);
 			// printInt(p[1]);
@@ -166,13 +260,13 @@ void philosophers() {
 			// printInt(thisP);
 		}
 		if (thisP == p[1] ) {
-			printS("\n I want to read : ");
+			printS("\n I want to read : \n");
 			int rd = readC(chan_circ[0]);
 			printS("I read from channel 0 : ");
 			printInt(rd);
 			printS("\n ");
 		}
 	}
-	execute(0);
-	//system_exit();
+	execute(0);*/
+	system_exit();
 }

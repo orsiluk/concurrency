@@ -36,13 +36,13 @@ void chooseAction(char* x) {
 			P0();
 			//system_exit();
 			printS("why here P00");
-		} else {
+		} /*else {
 			printS("why here P0");
 			yield();
 			printS("yielded");
 			return;
 
-		}
+		}*/
 	}
 
 	else if (findProcess(x, "run P1") == 1)	{	//printS(x);
@@ -52,11 +52,11 @@ void chooseAction(char* x) {
 			P1();
 			printS("why here P01");
 			system_exit();
-		} else {
+		} /*else {
 			printS("why here P1");
 			yield();
 
-		}
+		}*/
 	}
 
 	else if (findProcess(x, "run P2") == 1)	{
@@ -65,10 +65,10 @@ void chooseAction(char* x) {
 		if (f == 0) {
 			P2();
 			// system_exit();
-		} else {
+		} /*else {
 			yield();
 
-		}
+		}*/
 	}
 	else if (findProcess(x, "run philo") == 1)	{
 		int f = fork();
@@ -81,30 +81,30 @@ void chooseAction(char* x) {
 
 		}
 	}
-	else if (findProcess(x, "talk1") == 1)	{
-		int f = fork();
-		// printS(x);
-		//execute(0);
-		if (f == 0) {
-			talk1();
-			system_exit();
-		} else {
-			yield();
+	/*	else if (findProcess(x, "talk1") == 1)	{
+			int f = fork();
+			// printS(x);
+			//execute(0);
+			if (f == 0) {
+				talk1();
+				system_exit();
+			} else {
+				yield();
 
+			}
 		}
-	}
-	else if (findProcess(x, "talk2") == 1)	{
-		int f = fork();
-		// printS(x);
-		//execute(0);
-		if (f == 0) {
-			talk2();
-			system_exit();
-		} else {
-			yield();
+		else if (findProcess(x, "talk2") == 1)	{
+			int f = fork();
+			// printS(x);
+			//execute(0);
+			if (f == 0) {
+				talk2();
+				system_exit();
+			} else {
+				yield();
 
-		}
-	}
+			}
+		}*/
 
 	else {
 		printS("This is not a valid command!\n");
@@ -115,7 +115,7 @@ void chooseAction(char* x) {
 void terminal() {
 	char x[50];
 
-	int chan = create_c(1, 2);
+	//int chan = create_c(1, 2);
 	while (1) {
 		//printInt(i);
 		printS("shelly$ ");

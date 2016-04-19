@@ -7,6 +7,7 @@ entries in the process table: given the limited remit here, such entry simply in
 context. */
 
 ipc_t ipc[ 10 ];
+int chan;
 /*
 Define a list of pipes the same way as I dedined pcbs
 */
@@ -103,7 +104,13 @@ void scheduler(ctx_t* ctx) {
 
 void schedulerR(ctx_t* ctx) {
 	// It is the round-robin scheduler, it can be changed so it would return to the parent process if needed
-	if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
+
+	/*	if (current -> pid != current -> parent) {
+			memcpy( &pcb[ current -> pid ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ current -> parent ].ctx, sizeof( ctx_t ) );
+			current = &pcb[ current -> parent ];
+		}
+		else*/ if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ current -> pid + 1 ];
@@ -112,6 +119,17 @@ void schedulerR(ctx_t* ctx) {
 		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ 0 ];
 	}
+	/*
+		if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
+			memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
+			current = &pcb[ current -> pid + 1 ];
+		} else {
+			memcpy( &pcb[ nrprocess ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
+			current = &pcb[ 0 ];
+		}*/
+	//Change this later
 	if (pcb[current->pid].priority == -1) {
 		schedulerR(ctx);
 	}
@@ -119,7 +137,7 @@ void schedulerR(ctx_t* ctx) {
 
 void killProcess(ctx_t* ctx , int p) {
 	pcb[p].priority = -1;
-	scheduler(ctx);
+	schedulerR(ctx);
 }
 
 void timer() {
@@ -161,6 +179,7 @@ int createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	memset( &pcb[ pid ], 0, sizeof( pcb_t ) );
 	pcb[ pid ].priority   = priority;
 	pcb[ pid ].pid      = pid;
+	pcb[ pid ].parent      = pid;
 	pcb[ pid ].ctx.cpsr = cpsr;
 	pcb[ pid ].ctx.pc   = pc;
 	pcb[ pid ].ctx.sp   = stack + pid * 0x00001000;
@@ -186,6 +205,7 @@ void kernel_handler_rst(ctx_t* ctx) {
 	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+	timer();
 	return;
 }
 
@@ -198,10 +218,12 @@ void kernel_handler_irq(ctx_t* ctx) {
 
 	if ( id == GIC_SOURCE_TIMER0 ) {
 		//PL011_putc( UART0, 'T' );
+		int this = current->pid;
+		if ( this > 1 && this < chan + 1 ) schedulerR(ctx);
+		else if (this == chan + 1) execute(2);
+
 		TIMER0->Timer1IntClr = 0x01;
-		if (current -> pid != 3) {
-			//scheduler(ctx);
-		}
+
 	}
 
 	// Step 5: write the interrupt identifier to signal we're done.
@@ -214,7 +236,8 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 	memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 	pcb[ cp ].pid      = cp;
-	pcb[ cp ].priority   = 3; // I set it to 3 for now
+	pcb[ cp ].parent   = pp;
+	pcb[ cp ].priority = 3; // I set it to 3 for now
 	pcb[ cp ].ctx.pc   = pcb[ pp ].ctx.pc;
 	pcb[ cp ].ctx.cpsr = pcb[ pp ].ctx.cpsr;
 	pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
@@ -232,7 +255,7 @@ void ipcArray() {
 }
 
 int getIpcSlot() {
-	for ( int i = 0; i < 8; i++ ) {
+	for ( int i = 0; i < 10; i++ ) {
 		if ( ipc[ i ].c_end == -1 ) return i;
 	}
 
@@ -282,6 +305,22 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		uint32_t sp = ctx->sp;
 		//fork() returns a zero to the newly created child process.
 		//fork() returns a positive value, the process ID of the child process, to the parent.
+
+		/*		if (cp != -1) {
+					addPCB(cp, pp, ctx);
+					memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
+					//pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
+					memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
+					memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
+					pcb[pp].ctx.gpr[0] = cp;
+					// if i change ctx -> gpr[ 0 ] = 0; to the line below it has the right stuff in pcb gpr [0], but doesn't work, like this it doesn't but it works ??
+					//pcb[cp].ctx.gpr[0] = 0;
+					current = &pcb[ cp ];
+					ctx -> gpr[ 0 ] = 0;
+
+				}*/
+
+
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 
@@ -289,7 +328,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			uint32_t stackSpaceA  = stack + (cp - 1) * 0x00001000;
 			uint32_t stackSpaceB  = stack + (pp - 1) * 0x00001000;
 
-			memcpy(stackSpaceA, stackSpaceB, 0x00001000);
+			memcpy((void*)stackSpaceA, (void*)stackSpaceB, 0x00001000);
 			ctx->gpr[0] = cp;
 			pcb[cp].ctx.gpr[0] = 0;
 			pcb[cp].ctx.sp = sp2;
@@ -298,8 +337,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
 			current = &pcb[ cp ];
 			pcb[pp].ctx.sp = sp;
-			printInt((int)stackSpaceA - sp2);
-			printInt((int)stackSpaceB - sp);
+			// printInt((int)stackSpaceA - sp2);
+			// printInt((int)stackSpaceB - sp);
 
 		} else {
 			printS("No more space for new processes!\n");
@@ -341,10 +380,12 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 	case 0x06 : { // execute(pid)
 		// I want this function to execute a process with a certain pid fead into it
-		int   pid = ( int   )( ctx->gpr[ 0 ] );
-		memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
-		memcpy( ctx, &pcb[ pid ].ctx, sizeof( ctx_t ) );
-		current = &pcb[ pid ];
+		uint32_t execp = ( uint32_t )( ctx->gpr[ 0 ] );
+		if (pcb[execp].pid != -1) {
+			memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
+			memcpy( ctx, &pcb[ execp ].ctx, sizeof( ctx_t ) );
+			current = &pcb[ execp ];
+		} else printS("No a real process");
 		break;
 
 	}
@@ -353,6 +394,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		int c_start  = ( int )(ctx -> gpr[0]);
 		int c_end  = ( int )(ctx -> gpr[1]);
 		int ipc = createPipe(c_start, c_end);
+		chan ++;
 
 		ctx -> gpr[0] = ipc; // ipc is the value which shows where is this channel in ipc list
 		break;
@@ -366,21 +408,37 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		int cstick = ( int )(ctx -> gpr[1]);
 
 		if (ipc[chanid].buff == -1) ipc[chanid].buff = cstick;
-		else printS(" You first need to read from channel");
+		//else printS(" You first need to read from channel");
 
 		break;
 	}
-	case 10 : { // readC(chanid)
+	case 10 : { // int readC(chanid)
 		int chanid = ( int )(ctx -> gpr[0]);
 
 		if (ipc[chanid].buff != -1) {
 			ctx -> gpr[0] = ipc[chanid].buff;
 			ipc[chanid].buff = -1;
 		} else {
-			printS(" Nothing to read.");
+			//printS(" Nothing to read.");
 			ctx -> gpr[0] = 0;
 		}
 
+		break;
+	}
+	case 11: { //runT()
+		int i = 0;
+		while (i < 500000000) {
+			i++;
+		}
+		/*		uint32_t t = GICC0->IAR;
+						if ( id == GIC_SOURCE_TIMER0 ) {
+
+						}
+				TIMER0->Timer1IntClr = 0x01;
+
+				// Step 5: write the interrupt identifier to signal we're done.
+
+				GICC0->EOIR = id;*/
 		break;
 	}
 	// case 0x011: { //createP() //It loads the "talk" file for now but it can be overwritten

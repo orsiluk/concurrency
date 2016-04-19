@@ -38,6 +38,7 @@ typedef int pid_t;
 
 typedef struct {
 	int priority;
+	int parent;
 	pid_t pid;
 	ctx_t ctx;
 } pcb_t;

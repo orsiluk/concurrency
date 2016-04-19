@@ -121,12 +121,19 @@ int readC(int chanid) {
 	              : "r0");
 	//return r;
 }
-int createP() {
+/*int createP() {
+		int r;
+		asm volatile( "svc #11     \n"
+		              "mov %0, r0 \n"
+		              : "=r" (r));
+		return r;
+	}*/
+
+void runT() {
 	int r;
 	asm volatile( "svc #11     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r));
-	return r;
 }
 // Print integer
 void printInt(int i) {
@@ -138,7 +145,16 @@ void printInt(int i) {
 }
 
 //Print string - Implemented to make it simpler to print
+
+
 void printS(char* text) {
-	int n = strlen(text);
-	write(0, text, n);
+	//int n = strlen(text);
+	int i = 0;
+	while (*text != '\0' ) {
+		write(0, text, 1);
+
+		text++;
+	}
+	return;
+
 }

@@ -33,6 +33,8 @@ int readC(int chanid);
 
 void yield();
 
+void runT();
+
 // int createP();
 
 #endif
