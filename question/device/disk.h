@@ -16,6 +16,10 @@ extern uint32_t disk_get_block_num();
 extern uint32_t disk_get_block_len();
 
 // write an n-byte block of data x to   the disk at block address a
+// if a=0 it goes to 1st row
+
+//n sizeof(data whatever) -- for string is nr of letters
+
 extern void     disk_wr( uint32_t a, const uint8_t* x, int n );
 // read  an n-byte block of data x from the disk at block address a
 extern void     disk_rd( uint32_t a,       uint8_t* x, int n );

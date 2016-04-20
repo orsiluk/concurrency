@@ -306,22 +306,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		uint32_t sp = ctx->sp;
 		//fork() returns a zero to the newly created child process.
 		//fork() returns a positive value, the process ID of the child process, to the parent.
-
-		/*		if (cp != -1) {
-					addPCB(cp, pp, ctx);
-					memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-					//pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
-					memcpy( &pcb[ pp ].ctx, ctx, sizeof( ctx_t ) );
-					memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
-					pcb[pp].ctx.gpr[0] = cp;
-					// if i change ctx -> gpr[ 0 ] = 0; to the line below it has the right stuff in pcb gpr [0], but doesn't work, like this it doesn't but it works ??
-					//pcb[cp].ctx.gpr[0] = 0;
-					current = &pcb[ cp ];
-					ctx -> gpr[ 0 ] = 0;
-
-				}*/
-
-
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 
@@ -338,9 +322,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			memcpy( ctx, &pcb[ cp ].ctx, sizeof( ctx_t ) );
 			current = &pcb[ cp ];
 			pcb[pp].ctx.sp = sp;
-			// printInt((int)stackSpaceA - sp2);
-			// printInt((int)stackSpaceB - sp);
-
 		} else {
 			printS("No more space for new processes!\n");
 		}
@@ -442,19 +423,27 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 				GICC0->EOIR = id;*/
 		break;
 	}
-	case 12 : {
+	case 12 : { //blockNum()
 		int i = disk_get_block_num();
 		ctx -> gpr[0] = i;
 		break;
 	}
+	case 13 : { //blockLen()
+		int i = disk_get_block_len();
+		ctx -> gpr[0] = i;
+		break;
+	}
+	case 14 : { // wrtDisk(char* x, int len)
 
-	// case 0x011: { //createP() //It loads the "talk" file for now but it can be overwritten
-	// 	int ipc = createProcess(( uint32_t )( entry_talk ), 0x50, 0);
-	// 	ctx -> gpr[0] = ipc;
-	// }
+		// For now it only writes in the first line. Find a way to find you the next free space
 
-	default   : { // unknown
-		printS(" Something went wrong! \n");
+		char* text = ( char* )(ctx -> gpr[0]);
+		int len = ( int )(ctx -> gpr[1]);
+		disk_wr(0, text, len);
+		break;
+	}
+	default   : {
+		printS(" Something went wrong in kernel! \n");
 		break;
 	}
 

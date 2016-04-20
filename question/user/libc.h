@@ -10,13 +10,16 @@ int read( void* x );
 
 //int read( void* text );
 
+void printS( char* text);
+
 void printInt(int i);
+
+int slen( char* text);
 
 int fork();
 
 int system_exit();
 
-void printS( char* text);
 
 void execute(int pid);
 
@@ -36,6 +39,10 @@ void yield();
 void runT();
 
 int blockNum();
+
+int blockLen();
+
+void wrtDisk();
 
 // int createP();
 

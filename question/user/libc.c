@@ -143,6 +143,23 @@ int blockNum() {
 	              : "=r" (r));
 	return r;
 }
+int blockLen() {
+	int r;
+	asm volatile( "svc #13     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r));
+	return r;
+}
+void wrtDisk(char* x) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #14     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (x)
+	              : "r0");
+
+}
 // Print integer
 void printInt(int i) {
 	if ( i > 10) {
@@ -150,6 +167,7 @@ void printInt(int i) {
 	}
 	char digit = 0x30 + i % 10;
 	write(0, &digit, 1);
+	return;
 }
 
 //Print string - Implemented to make it simpler to print
@@ -165,4 +183,12 @@ void printS(char* text) {
 	}
 	return;
 
+}
+
+int slen(char* text) {
+	int i = 0;
+	while (text[i] != '\0' ) {
+		i++;
+	}
+	return i;
 }
