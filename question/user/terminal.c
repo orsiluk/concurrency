@@ -80,6 +80,11 @@ void chooseAction(char* x) {
 			yield();
 
 		}
+	} else if (findProcess(x, "ln") == 1) {
+
+		int i = blockNum();
+		if ( i == 1) printS("Number of blocks on disk");
+		else printS("The disk is empty");
 	}
 	/*	else if (findProcess(x, "talk1") == 1)	{
 			int f = fork();

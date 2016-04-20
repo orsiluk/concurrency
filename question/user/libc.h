@@ -35,6 +35,8 @@ void yield();
 
 void runT();
 
+int blockNum();
+
 // int createP();
 
 #endif

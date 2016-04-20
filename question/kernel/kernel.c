@@ -1,5 +1,6 @@
 #include "kernel.h"
 
+
 void ipcArray();
 pcb_t pcb[ 10 ], *current = NULL;
 /* Define a type pcb_t that captures a Process Control Block (PCB), instances of which form
@@ -427,7 +428,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	}
 	case 11: { //runT()
 		int i = 0;
-		while (i < 500000000) {
+		while (i < 300000000) {
 			i++;
 		}
 		/*		uint32_t t = GICC0->IAR;
@@ -441,6 +442,12 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 				GICC0->EOIR = id;*/
 		break;
 	}
+	case 12 : {
+		int i = disk_get_block_num();
+		ctx -> gpr[0] = i;
+		break;
+	}
+
 	// case 0x011: { //createP() //It loads the "talk" file for now but it can be overwritten
 	// 	int ipc = createProcess(( uint32_t )( entry_talk ), 0x50, 0);
 	// 	ctx -> gpr[0] = ipc;

@@ -9,6 +9,7 @@
 #include "SP804.h"
 
 #include "interrupt.h"
+#include "disk.h"
 #include <string.h>
 
 #include "P0.h"

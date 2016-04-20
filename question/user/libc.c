@@ -135,6 +135,14 @@ void runT() {
 	              "mov %0, r0 \n"
 	              : "=r" (r));
 }
+
+int blockNum() {
+	int r;
+	asm volatile( "svc #12     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r));
+	return r;
+}
 // Print integer
 void printInt(int i) {
 	if ( i > 10) {
