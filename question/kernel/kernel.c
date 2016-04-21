@@ -6,23 +6,29 @@ void ipcArray();
 entries in the process table: given the limited remit here, such entry simply includes a PID and execution
 context. */
 pcb_t pcb[ 10 ], *current = NULL;
+
+// Array of channels
 ipc_t ipc[ 10 ];
 
+// Struct created to manage the memory
 typedef struct {
 	char name[4];
 	int address;
 	int size;
 } filelist;
-
+// List of files on disk
 filelist files[10];
+
+//Current number of files on disk
 int nrfile = 0;
 
-int chan;
+int chan; //Channel to current process
 uint32_t all =  10; // all represents the overall number of processes which we can allocate (can be changed if you allocate more space at pcb_t pcb[ 10 ] )
 int pipes = 0; // The number of open channels
 int nrprocess = 0;
 uint32_t stack = (uint32_t) &tos_terminal + 0x00001000; //pointer to the top of the stack
 
+// Ageing a process ( incrementing priority actually means that we substract 1 from the prioroty of the current process)
 void incPrority() {
 	for (int i = 0; i < all; i++) {
 		if (pcb[i].priority > 0) {
@@ -31,6 +37,7 @@ void incPrority() {
 	}
 }
 
+// Returns the next process to be executed
 int nextP() {
 	uint32_t found = -1;
 	uint32_t highest = 11;
@@ -52,24 +59,10 @@ int nextP() {
 	return found;
 }
 
+// Priority based scheduler
 void scheduler(ctx_t* ctx) {
 
 	// Priority based scheduler with hopefully aging implemented as well
-
-	// For now I will desing it such that there is a terminal and there will be an execute function which
-	// will execute the next process in the priority queue, but this means that the processes are already
-	// predefined before execution, but you are still able to add processes (figure a way to do this)
-
-	// Question: Is it enough if it always retuns to the terminal or does it have to retun t te parent process? Like go back to P1 if we forked from P1?
-
-
-	// The way it works right now is that Termnal is the first element in the Q and it has priority 0
-	// so it will always be chosen when another process terminates. Also the process when it terminates
-	// exits, which is not great, because eventually will exit a process which I need in the Q.
-	// I am not sure what we are expected to do. :|
-	// If it shouldn't exit when it's not child process I can put an if in exit, and only exit if the
-	// process number is > than the predefined nr of processes. ( It will enevr exit predefined processes
-	// not even when I want to!)
 	int next = nextP();
 
 	memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
@@ -77,10 +70,14 @@ void scheduler(ctx_t* ctx) {
 	current = &pcb[ next ];
 }
 
+// Round Robin schedular
 void schedulerR(ctx_t* ctx) {
 	// It is the round-robin scheduler, it can be changed so it would return to the parent process if needed
 
-	/*	if (current -> pid != current -> parent) {
+	/*
+		// If I uncomment this it will go back to parent after it was executed
+
+		if (current -> pid != current -> parent) {
 			memcpy( &pcb[ current -> pid ].ctx, ctx, sizeof( ctx_t ) );
 			memcpy( ctx, &pcb[ current -> parent ].ctx, sizeof( ctx_t ) );
 			current = &pcb[ current -> parent ];
@@ -100,11 +97,13 @@ void schedulerR(ctx_t* ctx) {
 	}
 }
 
+// Kill process
 void killProcess(ctx_t* ctx , int p) {
 	pcb[p].priority = -1;
 	schedulerR(ctx);
 }
 
+// Timer
 void timer() {
 
 	TIMER0->Timer1Load     = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -139,6 +138,7 @@ int findSlot() {
 	return (place);
 }
 
+// Creates pre-defined processes
 int createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	pid_t pid = findSlot();
 	memset( &pcb[ pid ], 0, sizeof( pcb_t ) );
@@ -150,6 +150,7 @@ int createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	pcb[ pid ].ctx.sp   = stack + pid * 0x00001000;
 	return pid;
 }
+
 
 void kernel_handler_rst(ctx_t* ctx) {
 	/* Configure the mechanism for interrupt handling by
@@ -191,6 +192,7 @@ void kernel_handler_irq(ctx_t* ctx) {
 	GICC0->EOIR = id;
 }
 
+// Add a new element to pcb (process control block)
 void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 
 	memset (&pcb[ cp ], 0, sizeof(pcb_t));
@@ -202,11 +204,9 @@ void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
 	pcb[ cp ].ctx.cpsr = pcb[ pp ].ctx.cpsr;
 	pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
 	memcpy( &pcb[ cp ].ctx, ctx, sizeof(ctx_t));
-	/*	printS("Added ");
-		printInt(cp);
-		printS("\n");*/
 }
 
+// Sets up the IPC array at the beggening
 void ipcArray() {
 
 	for ( int i = 0; i < 10; i++ ) {
@@ -214,6 +214,7 @@ void ipcArray() {
 	}
 }
 
+// Finds a slot for the new channel
 int getIpcSlot() {
 	for ( int i = 0; i < 10; i++ ) {
 		if ( ipc[ i ].c_end == -1 ) return i;
@@ -222,6 +223,7 @@ int getIpcSlot() {
 	return -1;
 }
 
+// Creates a channel
 int createPipe(int c_start, int c_end) {
 	int slot = getIpcSlot();
 
@@ -229,7 +231,8 @@ int createPipe(int c_start, int c_end) {
 	if (slot > -1) {
 		ipc[ slot ].c_start = c_start;
 		ipc[ slot ].c_end = c_end;
-		ipc[ slot ].buff = -1;
+		ipc[ slot ].buff[0] = -1;
+		ipc[ slot ].buff[1] = -1;
 	} else printS("No more space for pipes");
 
 	return slot;
@@ -251,20 +254,16 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		for ( int i = 0; i < n; i++ ) {
 			PL011_putc( UART0, *x++ );
 		}
-		//scheduler(ctx);
 		ctx->gpr[ 0 ] = n;
 		break;
 	}
 	case 0x02 : { // fork()
-		//The way fork works is that while running the process where it is called it forks the process exactly where it left of, creates a new process and continues form the
-		//place where the process where it was called left off.
-		//I have to increase stack size and than copy the currently running processes information
+		//fork() returns a zero to the newly created child process.
+		//fork() returns a positive value, the process ID of the child process, to the parent.
 		pid_t pp  = current->pid;
 		pid_t cp  = findSlot(pp);
 
 		uint32_t sp = ctx->sp;
-		//fork() returns a zero to the newly created child process.
-		//fork() returns a positive value, the process ID of the child process, to the parent.
 		if (cp != -1) {
 			addPCB(cp, pp, ctx);
 
@@ -300,9 +299,8 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			x[i] = PL011_getc( UART0);
 			PL011_putc(UART0, x[i]);
 		}
-		//x[i + 1] = PL011_putc(UART0, "\0");
 		printS("\n");
-		ctx->gpr[ 0 ] = i - 1;
+		ctx->gpr[ 0 ] = i;
 
 		break;
 	}
@@ -346,21 +344,23 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		ctx -> gpr[0] = current -> pid;
 		break;
 	}
-	case 0x09 : { // writeC(chanid, cstick) - cstick is 0 if asking 1 if giving
+	case 0x09 : { // writeC(chanid, cstick, who) - cstick is 0 if asking 1 if giving
 		int chanid = ( int )(ctx -> gpr[0]);
 		int cstick = ( int )(ctx -> gpr[1]);
+		int who = ( int )(ctx -> gpr[2]);
 
-		if (ipc[chanid].buff == -1) ipc[chanid].buff = cstick;
+		if (ipc[chanid].buff[who] == -1) ipc[chanid].buff[who] = cstick;
 		//else printS(" You first need to read from channel");
 
 		break;
 	}
-	case 10 : { // int readC(chanid)
+	case 10 : { // int readC(int chanid,int who)
 		int chanid = ( int )(ctx -> gpr[0]);
+		int who = ( int )(ctx -> gpr[1]);
 
-		if (ipc[chanid].buff != -1) {
-			ctx -> gpr[0] = ipc[chanid].buff;
-			ipc[chanid].buff = -1;
+		if (ipc[chanid].buff[who] != -1) {
+			ctx -> gpr[0] = ipc[chanid].buff[who];
+			ipc[chanid].buff[who] = -1;
 		} else {
 			//printS(" Nothing to read.");
 			ctx -> gpr[0] = 0;
@@ -416,36 +416,27 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		char*  text =  ( char* )( ctx->gpr[ 1 ] );
 		int    fsize = ( int )(ctx -> gpr[2]);
 
-		//Am I stupid or this is not how you get the strings? has random shit inside
-
-		// WTFFFF neither none of these imputs are right. WHY??????????????
-
-		// Working otherwise
-
 		scopy(fname, files[nrfile].name);
-		//printS(files[nrfile].name);
-		if (nrfile == 0) {
-
-			disk_wr(12, text, fsize); //I start at 20, I wanted to leave space to just write random stuff to disk
-			files[nrfile].address = 12;
-			// printS("Address: ");
-			// printInt(files[nrfile].address);
-			files[nrfile].size = fsize;
-
-		} else {
-			files[nrfile].address = files[nrfile - 1].address + files[nrfile - 1].size;
-			files[nrfile].size = fsize;
-			disk_wr(files[nrfile].address, text, fsize);
+		int spot = -1;
+		for (int i = 0; i <= nrfile; i++) {
+			if (files[i].address == -1) {
+				spot = i;
+				break;
+			}
 		}
-		// printS("Nrfile: ");
-		// printInt(nrfile);
-//
-		/*		printS("Address: ");
-				printInt(files[nrfile].address);*/
-		// printS("Size: ");
-		// printInt(files[nrfile].size);
-		nrfile++;
-		//printInt(nrfile);
+
+		if (nrfile == 0) {
+			disk_wr(16, text, fsize); //I start at 12, I wanted to leave space to just write random stuff to disk
+			files[nrfile].address = 16;
+			files[nrfile].size = fsize;
+			nrfile++;
+		} else {
+			if (spot < 0) spot = nrfile;
+			if (spot = nrfile) nrfile++;
+			files[spot].address = 16 + files[spot - 1].address;
+			files[spot].size = fsize;
+			disk_wr(files[spot].address, text, fsize);
+		}
 		break;
 	}
 	case 17 : { //openfile(int read, char* fname) //returns the address of a file
@@ -455,12 +446,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		int eq;
 		while (i < nrfile) {
-			//printS("Comparing: \n");
-			/*			printS(fname);
-						printS(files[i].name);
-						printS("\n");*/
 			eq = compare(fname, files[i].name);
-			//printInt(eq);
 			if (eq == 1 && files[i].address != -1) {
 				if (read == 1) {
 					char content[files[i].size];
@@ -490,20 +476,17 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		int eq;
 		char*  fname =  ( char* )( ctx->gpr[ 0 ] );
 		while (i < nrfile) {
-			// printS("In while loop");
-			// printS(fname);
-			// printS(files[i].name);
 			eq = compare(fname, files[i].name);
 			if (eq == 1 && files[i].address != -1) {
-				printS("Found!\n");
-				printS("Address was: ");
-				printInt(files[i].address);
-				printS("\n");
+				/*				printS("Found!\n");
+								printS("Address was: ");
+								printInt(files[i].address);
+								printS("\n");*/
 				files[i].address = -1;
 				files[i].size = 0;
-				printS("File closed! Address now is: ");
-				printInt(files[i].address);
-				printS("\n");
+				printS("File closed! \n");
+				//printInt(files[i].address);
+				//printS("\n");
 				break;
 			}
 			i++;
@@ -512,10 +495,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		break;
 	}
-
-// To create a file you have to use the exisiting fuctions from disk.
-// To execute a file, you have to create an array which contains the filenames and addresses they are stored at
-
 	default   : {
 		printS(" Something went wrong in kernel! \n");
 		break;

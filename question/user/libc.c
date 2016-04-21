@@ -100,25 +100,25 @@ int get_id() {
 }
 
 // Write to channel
-void writeC(int chanid, int cstick) {
+void writeC(int chanid, int cstick, int who) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
 	              "mov r1, %2 \n"
 	              "svc #9     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (chanid), "r" (cstick)
+	              : "r" (chanid), "r" (cstick), "r" (who)
 	              : "r0", "r1");
 }
 
 // Read form channel
-int readC(int chanid) {
+int readC(int chanid, int who) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
 	              "svc #10     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (chanid)
+	              : "r" (chanid), "r" (who)
 	              : "r0");
 	//return r;
 }

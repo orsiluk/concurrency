@@ -33,7 +33,7 @@ void chooseAction(char* x, int l) {
 		if (f == 0) {
 			P0();
 			//system_exit();
-			printS("why here P00");
+			// printS("why here P00");
 		} /*else {
 			printS("why here P0");
 			yield();
@@ -94,6 +94,7 @@ void chooseAction(char* x, int l) {
 	else if (findProcess(x, "wrtdisk", l) == 1) {
 		char x[50];
 		int len = read( x );
+		printInt(len);
 		wrtDisk(0, x, len);
 	}
 	else if (findProcess(x, "rddisk", l) == 1) {

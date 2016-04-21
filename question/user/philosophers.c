@@ -21,8 +21,8 @@ typedef struct {
 	int rstick ;	// Right stick ID 		// Ask for it from process i+1
 
 	// These two: I want to use them but for now it's too much to handle
-	// int lc ;		// Left clean -> -1 if dirty 0 if not there 1 if clean
-	// int rc ;		// Right clean -> -1 if dirty 0 if not there 1 if clean
+	int lc ;		// Left clean -> -1 if dirty 0 if not there 1 if clean
+	int rc ;		// Right clean -> -1 if dirty 0 if not there 1 if clean
 	int lnb ;		// Left sid neighbour
 	int rnb ;		// Right side neighbour
 	int hungry ;	// Is he houngry
@@ -65,8 +65,8 @@ void setupTable(int f, int i) {
 		philo[i].id = i;
 		philo[i].pid = cid;
 		philo[i].hungry = 1;
-		// philo.lc = -1;
-		// philo.rc = -1;
+		// philo[i].lc = -1;
+		// philo[i].rc = -1;
 		if (i == 0) {
 			philo[i].lstick = 1; // Has stick form left but dirty
 			philo[i].rstick = 1; // Has stick form right but dirty
@@ -139,14 +139,18 @@ I don't ever have to go in the forks again
 void think(int id) {
 	printInt(id);
 	printS("th philosopher is thinking \n");
-	runT();
+	//runT();
+	int t = 0;
+	while (t < 300000000) {
+		t++;
+	}
 	printInt(id);
 	printS(" Done thinking \n");
 }
 
 void sticks(int id) {
 	//printS("p1\n");
-	if (philo[id].lstick == 1 && philo[id].rstick == 1) {
+	/*if (philo[id].lstick == 1 && philo[id].rstick == 1) {
 		//printS("In sticks\n");
 		printS("Philosopher "); printInt(id); printS(" is eating\n");
 		runT();
@@ -157,14 +161,66 @@ void sticks(int id) {
 		philo[id].lstick = 0;
 
 		philo[id].hungry = 0;
-	} /*else if (philo[id].rstick == -1) {
+	}
+
+	else if (philo[id].rstick == 0) {
+		//printS("p2\n");
+		philo[id].rstick = readC(id);
+	}
+	else if (philo[id].lstick == 0) {
+		//printS("p3\n");
+		philo[id].lstick = readC(philo[id].lnb);
+	}
+	return;*/
+	int left = philo[id].lstick;
+	int right = philo[id].rstick;
+
+	while (left == 0) {
+		left = readC(philo[id].lnb, 0);
+		philo[id].lstick = left;
+	}
+	while (right == 0) {
+		right = readC(id, 1);
+		philo[id].rstick = right;
+	}
+
+	printS("Philosopher "); printInt(id); printS(" is eating\n");
+	int t = 0;
+	while (t < 300000000) {
+		t++;
+	}
+	printS("Done eating \n");
+
+	philo[id].hungry = 0;
+
+	writeC(id, 1, 1); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
+	philo[id].rstick = 0;
+	writeC(philo[id].lnb, 1, 0); //lnb == with chanelid to left neighbour
+	philo[id].lstick = 0;
+}
+/*void sticks(int id) {
+	//printS("p1\n");
+	if (philo[id].lstick == 1 && philo[id].rstick == 1) {
+		//printS("In sticks\n");
+		printS("Philosopher "); printInt(id); printS(" is eating\n");
+		runT();
+		printS("Done eating \n");
+		philo[id].rstick = -1;
+		philo[id].lstick = -1;
+		//writeC(id, 1); //id == with chanelid to right neighbour
+		//philo[id].rstick = 0;
+		//writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
+		//philo[id].lstick = 0;
+
+		philo[id].hungry = 0;
+	} else if (philo[id].rstick == -1) {
 		writeC(id, 1); //id == with chanelid to right neighbour
 		philo[id].rstick = 0;
 	}
 	else if (philo[id].lstick == -1) {
 		writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
 		philo[id].lstick = 0;
-	}*/
+	}
 	else if (philo[id].rstick == 0) {
 		//printS("p2\n");
 		philo[id].rstick = readC(id);
@@ -174,30 +230,29 @@ void sticks(int id) {
 		philo[id].lstick = readC(philo[id].lnb);
 	}
 	return;
-}
+}*/
 
 
 void start() {
-	int i = 0;
-	while (i < 50) {
+	//int i = 0;
+	while (1) {
 		// if (id < 5) {
 
 		int id = get_id() - 2;
 
 		if (philo[id].hungry == 0) {
 			think(id);
-			runT();
 			philo[id].hungry = 1;
 		}
 		else {
 
-			printS("Philosopher "); printInt(id); printS(" is houngry\n");
+			printS("Philosopher "); printInt(id); printS(" is hungry\n");
 
 			sticks(id);
 
 
 		}
-		i++;
+		//i++;
 		//id++;
 		//} else {
 
@@ -238,11 +293,13 @@ void philosophers() {
 		printS("Channel setup done. \n");
 		c = 1;
 
+		execute(p[0]);
+
 	}
-
-	execute(p[0]);
-
 	start();
+
+
+	printS("philosophers over\n");
 	/*if (setup == 1) {
 		if (id == 0) {
 			id++;
@@ -271,3 +328,4 @@ void philosophers() {
 	execute(0);*/
 	system_exit();
 }
+void (*entry_philosphers)() = &philosophers;

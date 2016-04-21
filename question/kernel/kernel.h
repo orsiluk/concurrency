@@ -46,7 +46,7 @@ typedef struct {
 typedef struct {
 	// void * 1to2[5];
 	// void * 2to1[5];
-	int buff;
+	int buff[2];
 	pid_t c_start;
 	pid_t c_end;
 } ipc_t;
