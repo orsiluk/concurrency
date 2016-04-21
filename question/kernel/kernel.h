@@ -29,8 +29,6 @@
  * - a type that captures a process PCB.
  */
 
-
-
 typedef struct {
 	uint32_t cpsr, pc, gpr[ 13 ], sp, lr;
 } ctx_t;

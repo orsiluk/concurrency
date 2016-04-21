@@ -13,6 +13,7 @@ When a Philo has eaten, all his forks become dirty.
 
 */
 
+// go back to clean and dirty forks
 typedef struct {
 	int id;			// Philosopher ID
 	int pid;		// Process ID

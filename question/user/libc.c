@@ -1,5 +1,4 @@
 #include "libc.h"
-#include <string.h>
 
 // Find the next process to be executed
 void yield() {
@@ -100,6 +99,7 @@ int get_id() {
 	return r;
 }
 
+// Write to channel
 void writeC(int chanid, int cstick) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
@@ -111,6 +111,7 @@ void writeC(int chanid, int cstick) {
 	              : "r0", "r1");
 }
 
+// Read form channel
 int readC(int chanid) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
@@ -121,14 +122,8 @@ int readC(int chanid) {
 	              : "r0");
 	//return r;
 }
-/*int createP() {
-		int r;
-		asm volatile( "svc #11     \n"
-		              "mov %0, r0 \n"
-		              : "=r" (r));
-		return r;
-	}*/
 
+// Run timer
 void runT() {
 	int r;
 	asm volatile( "svc #11     \n"
@@ -136,6 +131,7 @@ void runT() {
 	              : "=r" (r));
 }
 
+// Get number of blocks on disk
 int blockNum() {
 	int r;
 	asm volatile( "svc #12     \n"
@@ -143,6 +139,8 @@ int blockNum() {
 	              : "=r" (r));
 	return r;
 }
+
+// Get legth of blocks on disk
 int blockLen() {
 	int r;
 	asm volatile( "svc #13     \n"
@@ -150,19 +148,71 @@ int blockLen() {
 	              : "=r" (r));
 	return r;
 }
-void wrtDisk(char* x) {
+
+// Write to disk
+void wrtDisk(int where, char* x, int l) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
 	              "svc #14     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (x)
+	              : "r" (x), "r" (l)
 	              : "r0");
 
 }
+
+// Read from disk
+void rdDisk(int where, char* text, int len) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "svc #15    \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (where), "r" (text), "r" (len)
+	              : "r0");
+	//return r;
+}
+
+// Create file to disk
+void createfile(char* name, char* text, int len) {
+	int r;
+
+	asm volatile( "mov r0, %1 \n"
+	              "svc #16    \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (name), "r" (text), "r" (len)
+	              : "r0");
+	//return r;
+}
+
+// Open file from disk
+int openfile(int i, char* x) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #17     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (i), "r" (x)
+	              : "r0");
+	return r;
+}
+
+// Close file from disk
+void closefile(char* x) {
+	int r;
+	asm volatile( "mov r0, %1 \n"
+	              "svc #18     \n"
+	              "mov %0, r0 \n"
+	              : "=r" (r)
+	              : "r" (x)
+	              : "r0");
+}
+
 // Print integer
 void printInt(int i) {
-	if ( i > 10) {
+	if ( i >= 10) {
 		printInt(i / 10);
 	}
 	char digit = 0x30 + i % 10;
@@ -171,10 +221,7 @@ void printInt(int i) {
 }
 
 //Print string - Implemented to make it simpler to print
-
-
 void printS(char* text) {
-	//int n = strlen(text);
 	int i = 0;
 	while (*text != '\0' ) {
 		write(0, text, 1);
@@ -185,10 +232,37 @@ void printS(char* text) {
 
 }
 
+// Get string legth
 int slen(char* text) {
 	int i = 0;
 	while (text[i] != '\0' ) {
+		//write(0, (char*) text[i], 1);
 		i++;
 	}
 	return i;
+}
+
+// Copy string
+char* scopy(char* from, char* to) {
+	int i = 0;
+	while (from[i] != '\0' ) {
+		to[i] = from[i];
+		i++;
+	}
+	return to;
+}
+
+// Compare two strings
+int compare(char* one, char* two) {
+	//int c = 1;
+	//int l1 = slen(one);
+	for ( uint32_t i = 0; i < 4 ; i += 1 ) {
+		/*		printS(&one[i]);
+				printS(&two[i]);*/
+		if (one[i] != two[i]) {
+			//printS("character mismatch");
+			return 0;
+		}
+	}
+	return 1;
 }

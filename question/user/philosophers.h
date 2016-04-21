@@ -6,8 +6,6 @@
 
 
 #include "libc.h"
-#include "phil.h"
-
 
 extern void (*entry_philosophers)();
 extern uint32_t tos_philosophers;
