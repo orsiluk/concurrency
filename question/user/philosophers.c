@@ -37,7 +37,7 @@ int chan_circ[5]; // Channel circle -> chan_circ[0] for 0-1 , chan_circ[1] for 1
 int ppID = 1;  // parent process ID
 int setup = 0; // I turn it int 1 when setup is over
 int c = 0;
-int id = 0;
+//int id = 0;
 int s = 0;
 
 // If I write a function in kernel.c get_id with which I can found out the ID of the current process
@@ -89,21 +89,21 @@ void setupTable(int f, int i) {
 				printS("\n");
 				printS("Info id pid hungry lc rc lstick rstick lnb rnb");
 				printS("\n");
-				printInt(philo.id);
+				printInt(philo[i].id);
 				printS("  ");
-				printInt(philo.pid);
+				printInt(philo[i].pid);
 				printS("  ");
-				printInt(philo.hungry);
+				printInt(philo[i].hungry);
 				printS("  ");
-				printInt(philo.lstick);
+				printInt(philo[i].lstick);
 				printS("  ");
-				printInt(philo.rstick);
+				printInt(philo[i].rstick);
 				printS("  ");
-				printInt(philo.lnb);
+				printInt(philo[i].lnb);
 				printS("  ");
-				printInt(philo.rnb);
+				printInt(philo[i].rnb);
 				printS("\n");
-				printS("\n");*/
+		*/		//printS("\n");
 
 	} else {
 		// printS("P[i] = ");
@@ -136,19 +136,19 @@ void setupChan() {
 /*
 I don't ever have to go in the forks again
 */
-void think(int id) {
-	printInt(id);
+void think(int th) {
+	printInt(th);
 	printS("th philosopher is thinking \n");
 	//runT();
-	int t = 0;
-	while (t < 300000000) {
-		t++;
-	}
-	printInt(id);
+	// int t = 0;
+	// while (t < 300000000) {
+	// 	t++;
+	// }
+	printInt(th);
 	printS(" Done thinking \n");
 }
 
-void sticks(int id) {
+void sticks(int me) {
 	//printS("p1\n");
 	/*if (philo[id].lstick == 1 && philo[id].rstick == 1) {
 		//printS("In sticks\n");
@@ -172,31 +172,52 @@ void sticks(int id) {
 		philo[id].lstick = readC(philo[id].lnb);
 	}
 	return;*/
-	int left = philo[id].lstick;
-	int right = philo[id].rstick;
+	int left = philo[me].lstick;
+	int right = philo[me].rstick;
+	//int mess = -1;
 
+	printInt(me);
+	printS (" Philo lstick: ");
+	printInt(philo[me].lstick);
+	printS("\n");
+	printInt(me);
+	printS (" Philo rstick: ");
+	printInt(philo[me].rstick);
+	printS("\n");
 	while (left == 0) {
-		left = readC(philo[id].lnb, 0);
-		philo[id].lstick = left;
+		if (me == 0) {
+			left = readC(philo[me].lnb, 1);
+		} else {
+
+			left = readC(philo[me].lnb, 0);
+		}
+		philo[me].lstick = left;
 	}
 	while (right == 0) {
-		right = readC(id, 1);
-		philo[id].rstick = right;
+		if (me == 0) {
+			right = readC(me, 0);
+		} else {
+			right = readC(me, 1);
+		}
+		philo[me].rstick = right;
 	}
 
-	printS("Philosopher "); printInt(id); printS(" is eating\n");
+	printS("Philosopher "); printInt(me); printS(" is eating\n");
 	int t = 0;
-	while (t < 300000000) {
-		t++;
-	}
-	printS("Done eating \n");
+	/*	while (t < 300000000) {
+			t++;
+		}*/
+	//runT();
+	printS("Done eating "); printInt(me); printS("\n");
 
-	philo[id].hungry = 0;
+	philo[me].hungry = 0;
 
-	writeC(id, 1, 1); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
-	philo[id].rstick = 0;
-	writeC(philo[id].lnb, 1, 0); //lnb == with chanelid to left neighbour
-	philo[id].lstick = 0;
+	philo[me].rstick = 0;
+	philo[me].lstick = 0;
+	writeC(me, 1, 0); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
+	writeC(philo[me].lnb, 1, 1); //lnb == with chanelid to left neighbour
+
+	printS("Stick sent");
 }
 /*void sticks(int id) {
 	//printS("p1\n");
@@ -234,31 +255,51 @@ void sticks(int id) {
 
 
 void start() {
-	//int i = 0;
-	while (1) {
-		// if (id < 5) {
+	int i = 0;
+//	while (i < 50) {
+	// if (id < 5) {
 
-		int id = get_id() - 2;
+	int philoid = get_id() - 2;
 
-		if (philo[id].hungry == 0) {
-			think(id);
-			philo[id].hungry = 1;
-		}
-		else {
+	/*	printS("Info id pid hungry lc rc lstick rstick lnb rnb");
+		printS("\n");
+		printInt(philo[philoid].id);
+		printS("  ");
+		printInt(philo[philoid].pid);
+		printS("  ");
+		printInt(philo[philoid].hungry);
+		printS("  ");
+		printInt(philo[philoid].lstick);
+		printS("  ");
+		printInt(philo[philoid].rstick);
+		printS("  ");
+		printInt(philo[philoid].lnb);
+		printS("  ");
+		printInt(philo[philoid].rnb);
+		printS("\n");
 
-			printS("Philosopher "); printInt(id); printS(" is hungry\n");
+		printInt(philoid);
+	*/
+	if (philo[philoid].hungry == 0) {
+		think(philoid);
+		philo[philoid].hungry = 1;
+	}
+	else {
 
-			sticks(id);
+		printS("Philosopher "); printInt(philoid); printS(" is hungry\n");
+
+		sticks(philoid);
 
 
-		}
-		//i++;
+		//	}
+		i++;
 		//id++;
 		//} else {
 
 		//	id = 0;
 		//}
 	}
+//}
 }
 
 void philosophers() {
