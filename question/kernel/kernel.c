@@ -29,13 +29,13 @@ int nrprocess = 0;
 uint32_t stack = (uint32_t) &tos_terminal + 0x00001000; //pointer to the top of the stack
 
 // Ageing a process ( incrementing priority actually means that we substract 1 from the prioroty of the current process)
-void incPrority() {
+/*void incPrority() {
 	for (int i = 0; i < all; i++) {
 		if (pcb[i].priority > 0) {
-			pcb[i].priority -= 1;
+			pcb[i].priority += 1;
 		}
 	}
-}
+}*/
 
 // Returns the next process to be executed
 int nextP() {
@@ -43,7 +43,7 @@ int nextP() {
 	uint32_t highest = 11;
 	int i = 0;
 	while (i < nrprocess) {
-		if (i != current->pid) {
+		if (i != current->pid || current->pid == 0 ) {
 			if (pcb[i].priority < highest && pcb[i].priority != -1 ) {
 				found = i;
 				highest = pcb[i].priority;
@@ -51,11 +51,12 @@ int nextP() {
 		}
 		i++;
 	}
-	incPrority();
+//	incPrority();
 
-	if (found != 0) {
+	if (found != 0 && found != -1) {
 		pcb[found].priority++;
 	}
+
 	return found;
 }
 
@@ -64,10 +65,12 @@ void scheduler(ctx_t* ctx) {
 
 	// Priority based scheduler with hopefully aging implemented as well
 	int next = nextP();
-
-	memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
-	memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );
-	current = &pcb[ next ];
+	if (nrprocess == current->pid ) return;
+	else {
+		memcpy( &pcb[ current->pid ].ctx, ctx, sizeof( ctx_t ) );
+		memcpy( ctx, &pcb[ next ].ctx, sizeof( ctx_t ) );
+		current = &pcb[ next ];
+	}
 }
 
 // Round Robin schedular
@@ -83,7 +86,8 @@ void schedulerR(ctx_t* ctx) {
 			current = &pcb[ current -> parent ];
 		}
 		else*/
-	if ( current != &pcb[ nrprocess - 1 ] ) {// -1 because I started counting form 0
+	if (nrprocess == 1) return;
+	else if ( current != &pcb[ nrprocess - 1 ]) {// -1 because I started counting form 0
 		memcpy( &pcb[ current -> pid].ctx, ctx, sizeof( ctx_t ) );
 		memcpy( ctx, &pcb[ current -> pid + 1 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ current -> pid + 1 ];
@@ -92,6 +96,7 @@ void schedulerR(ctx_t* ctx) {
 		memcpy( ctx, &pcb[ 0 ].ctx, sizeof( ctx_t ) );
 		current = &pcb[ 0 ];
 	}
+
 	if (pcb[current->pid].priority == -1) {
 		schedulerR(ctx);
 	}
@@ -163,7 +168,7 @@ void kernel_handler_rst(ctx_t* ctx) {
 	 */
 	ipcArray();
 
-	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 0);
+	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 5);
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 	timer();
@@ -179,10 +184,12 @@ void kernel_handler_irq(ctx_t* ctx) {
 
 	if ( id == GIC_SOURCE_TIMER0 ) {
 		//PL011_putc( UART0, 'T' );
-		int this = current->pid;
-		if ( this > 1 && this < chan + 1 ) schedulerR(ctx);
-		else if (this == chan + 1) execute(2);
-
+		/*		// if () {
+				int this = current->pid;
+				if ( this > 1 && this < chan + 1 ) schedulerR(ctx);
+				else if (this == chan + 1) execute(2);
+				//}*/
+		scheduler(ctx);
 		TIMER0->Timer1IntClr = 0x01;
 
 	}
@@ -193,13 +200,13 @@ void kernel_handler_irq(ctx_t* ctx) {
 }
 
 // Add a new element to pcb (process control block)
-void addPCB(pid_t cp, pid_t pp, ctx_t* ctx) {
+void addPCB(pid_t cp, pid_t pp, ctx_t* ctx, int prior) {
 
 	memset (&pcb[ cp ], 0, sizeof(pcb_t));
 
 	pcb[ cp ].pid      = cp;
 	pcb[ cp ].parent   = pp;
-	pcb[ cp ].priority = 3; // I set it to 3 for now
+	pcb[ cp ].priority = prior; // I set it to 3 for now
 	pcb[ cp ].ctx.pc   = pcb[ pp ].ctx.pc;
 	pcb[ cp ].ctx.cpsr = pcb[ pp ].ctx.cpsr;
 	pcb[ cp ].ctx.sp   = pcb[ pp ].ctx.sp + (cp - pp) * 0x00001000;
@@ -243,7 +250,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	switch ( id ) {
 	case 0x00 : { // yield()
 
-		schedulerR( ctx );
+		scheduler( ctx );
 		break;
 	}
 	case 0x01 : { // write( fd, x, n )
@@ -265,7 +272,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		uint32_t sp = ctx->sp;
 		if (cp != -1) {
-			addPCB(cp, pp, ctx);
+			addPCB(cp, pp, ctx, 3);
 
 			uint32_t sp2 = sp + (cp - pp) * 0x00001000;
 			uint32_t stackSpaceA  = stack + (cp - 1) * 0x00001000;
@@ -309,7 +316,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		int cp = current->pid;
 		pcb[ cp ].priority = -1;
-		schedulerR(ctx);
+		scheduler(ctx);
 		break;
 	}
 
@@ -495,6 +502,10 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
 		break;
 	}
+	// case 19: { //pbs()
+	// 	psched = 1;
+
+	// }
 	default   : {
 		printS(" Something went wrong in kernel! \n");
 		break;

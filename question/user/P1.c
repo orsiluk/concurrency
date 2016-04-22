@@ -47,12 +47,12 @@ void P1() {
         printInt(r);
         printS("\n");
 
-        if (n < 5) {
-          n++;
-        } else {
-          system_exit();
-          //yield();
-        }
+        /*        if (n < 15) {
+                  n++;
+                } else {
+                  system_exit();
+                  //yield();
+                }*/
       }
     }
     //system_exit();

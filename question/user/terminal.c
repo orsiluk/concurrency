@@ -32,10 +32,10 @@ void chooseAction(char* x, int l) {
 		//printInt(f);
 		if (f == 0) {
 			P0();
+			//yield();
 			//system_exit();
 			// printS("why here P00");
 		} /*else {
-			printS("why here P0");
 			yield();
 			printS("yielded");
 			return;
@@ -49,11 +49,12 @@ void chooseAction(char* x, int l) {
 		if (f == 0) {
 			P1();
 			//system_exit();
-		} /*else {
-			printS("why here P1");
-			yield();
+		}
+		// else {
+		// 	// printS("why here P1");
+		// 	yield();
 
-		}*/
+		// }
 	}
 
 	else if (findProcess(x, "run P2", l) == 1)	{
@@ -62,10 +63,10 @@ void chooseAction(char* x, int l) {
 		if (f == 0) {
 			P2();
 			// system_exit();
-		} /*else {
+		} else {
 			yield();
 
-		}*/
+		}
 	}
 	else if (findProcess(x, "run philo", l) == 1)	{
 		int f = fork();
@@ -167,10 +168,10 @@ void chooseAction(char* x, int l) {
 		printS("Am I in new line?");
 
 	}
-	else {
-		printS("This is not a valid command!\n");
-		//system_exit();
-	}
+	/*	else {
+			printS("This is not a valid command!\n");
+			//system_exit();
+		}*/
 }
 
 void terminal() {
@@ -181,10 +182,10 @@ void terminal() {
 		//printInt(i);
 		printS("shelly$ ");
 		int l = read( x );
-		while (l < 1) {
-			printS("shelly$ ");
-			l = read( x );
-		}
+		/*		while (l < 1) {
+					printS("shelly$ ");
+					l = read( x );
+				}*/
 		//printS("\n");
 		chooseAction(x, l);
 	}
