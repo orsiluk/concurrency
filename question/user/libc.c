@@ -156,7 +156,7 @@ void wrtDisk(int where, char* x, int l) {
 	              "svc #14     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (x), "r" (l)
+	              : "r" (where), "r" (x), "r" (l)
 	              : "r0");
 
 }

@@ -27,7 +27,7 @@ uint32_t all =  10; // all represents the overall number of processes which we c
 int pipes = 0; // The number of open channels
 int nrprocess = 0;
 uint32_t stack = (uint32_t) &tos_terminal + 0x00001000; //pointer to the top of the stack
-
+int addr = 16;
 // Ageing a process ( incrementing priority actually means that we substract 1 from the prioroty of the current process)
 /*void incPrority() {
 	for (int i = 0; i < all; i++) {
@@ -166,8 +166,15 @@ void kernel_handler_rst(ctx_t* ctx) {
 	 *   processor via the IRQ interrupt signal, then
 	 * - enabling IRQ interrupts.
 	 */
-	ipcArray();
 
+
+	ipcArray();
+	/*	for ( int i = 0; i < 10; i++ ) {
+			disk_rd(addr, files[i].name, 4);
+			files[i].address = 80 + i * 16;
+			disk_rd(addr + 5, files[i].size, 2);
+			addr = addr + 8;
+		}*/
 	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 5);
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
@@ -380,15 +387,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		while (i < 300000000) {
 			i++;
 		}
-		/*		uint32_t t = GICC0->IAR;
-						if ( id == GIC_SOURCE_TIMER0 ) {
 
-						}
-				TIMER0->Timer1IntClr = 0x01;
-
-				// Step 5: write the interrupt identifier to signal we're done.
-
-				GICC0->EOIR = id;*/
 		break;
 	}
 	case 12 : { //blockNum()
@@ -404,11 +403,11 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 	case 14 : { // wrtDisk(int where, char* x, int l)
 
 		// For now it only writes in the first line. Find a way to find you the next free space
-		int where = ( int )(ctx -> gpr[0]);
+		uint32_t where = ( int )(ctx -> gpr[0]);
 		char* text = ( char* )(ctx -> gpr[1]);
 		int len = ( int )(ctx -> gpr[2]);
 
-		disk_wr(0, text, len);
+		disk_wr(where, text, len);
 		break;
 	}
 	case 15 : { //rdDisk(int where, char* text,int len)
@@ -426,41 +425,78 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		scopy(fname, files[nrfile].name);
 		int spot = -1;
 		for (int i = 0; i <= nrfile; i++) {
-			if (files[i].address == -1) {
+			if (files[i].size == 0) {
 				spot = i;
 				break;
 			}
 		}
 
 		if (nrfile == 0) {
-			disk_wr(16, text, fsize); //I start at 12, I wanted to leave space to just write random stuff to disk
-			files[nrfile].address = 16;
+			disk_wr(80, text, fsize); //I start at 80, I wanted to leave space to just write random stuff to disk
+			files[nrfile].address = 80;
 			files[nrfile].size = fsize;
+			/*			disk_wr(addr, files[nrfile].name, 4);
+						disk_wr(addr + 4, "\r", 1);
+
+									// disk_wr(addr + 6, files[nrfile].address, 2);
+									// disk_wr(addr + 4, "\r", 1);
+
+						// 			if (files[nrfile].size < 10) {
+						// 				disk_wr(addr + 9, files[nrfile].size, 1);
+						// 				disk_wr(addr + 10, "\r", 1);
+						// 				addr = addr + 11;
+						// 			}
+						// else {
+						disk_wr(addr + 9, files[nrfile].size, 2);
+						disk_wr(addr + 11, "\r", 1);
+						addr = addr + 12;*/
+			//}
 			nrfile++;
 		} else {
 			if (spot < 0) spot = nrfile;
 			if (spot = nrfile) nrfile++;
 			files[spot].address = 16 + files[spot - 1].address;
 			files[spot].size = fsize;
+
+			/*			disk_wr(addr, files[spot].name, 4);
+						disk_wr(addr + 4, "\r", 1);
+
+									// disk_wr(addr + 6, files[spot].address, 2);
+									// disk_wr(addr + 4, "\r", 1);
+
+									// if (files[nrfile].size < 10) {
+									// 	disk_wr(addr + 9, files[spot].size, 1);
+									// 	disk_wr(addr + 10, "\r", 1);
+									// 	addr = addr + 11;
+									// }
+									// else {
+						disk_wr(addr + 9, files[spot].size, 2);
+						disk_wr(addr + 11, "\r", 1);
+						addr = addr + 12;*/
+			//}
+
 			disk_wr(files[spot].address, text, fsize);
 		}
+
+
 		break;
 	}
 	case 17 : { //openfile(int read, char* fname) //returns the address of a file
 		int i = 0;
 		int    read = ( int )(ctx -> gpr[0]);
+		// If read == 0 only returns address, if read == 1 it returns the content of the file
 		char*  fname =  ( char* )( ctx->gpr[ 1 ] );
 
 		int eq;
 		while (i < nrfile) {
 			eq = compare(fname, files[i].name);
-			if (eq == 1 && files[i].address != -1) {
+			if (eq == 1 && files[i].size != 0) {
 				if (read == 1) {
 					char content[files[i].size];
 					int adr = files[i].address;
 					disk_rd(files[i].address, content, files[i].size);
-
-					printS(content);
+					write(0, content, files[i].size);
+					//printS(content);
 					ctx->gpr[ 0 ] = files[i].size;
 
 					break;
@@ -489,7 +525,7 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 								printS("Address was: ");
 								printInt(files[i].address);
 								printS("\n");*/
-				files[i].address = -1;
+				//files[i].address = -1;
 				files[i].size = 0;
 				printS("File closed! \n");
 				//printInt(files[i].address);
