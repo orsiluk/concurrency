@@ -26,6 +26,8 @@ void printInt(int i);
 // Compare two strings
 int compare(char* one, char* two);
 
+char* emptyCharArray();
+
 
 // Find the next process to be executed
 void yield();
@@ -64,10 +66,10 @@ int blockNum();
 int blockLen();
 
 // Write to disk
-void wrtDisk(int where, char* text, int len);
+void wrtDisk(int where, char* text);
 
 // Read from disk
-void rdDisk(int where, char* text, int len);
+void rdDisk(int where, char* text);
 
 // Create file to disk
 void createfile(char* name, char* text, int len);

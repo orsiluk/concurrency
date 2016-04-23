@@ -150,26 +150,26 @@ int blockLen() {
 }
 
 // Write to disk
-void wrtDisk(int where, char* x, int l) {
+void wrtDisk(int where, char* x) {
 	int r;
 	asm volatile( "mov r0, %1 \n"
 	              "svc #14     \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (where), "r" (x), "r" (l)
+	              : "r" (where), "r" (x)
 	              : "r0");
 
 }
 
 // Read from disk
-void rdDisk(int where, char* text, int len) {
+void rdDisk(int where, char* text) {
 	int r;
 
 	asm volatile( "mov r0, %1 \n"
 	              "svc #15    \n"
 	              "mov %0, r0 \n"
 	              : "=r" (r)
-	              : "r" (where), "r" (text), "r" (len)
+	              : "r" (where), "r" (text)
 	              : "r0");
 	//return r;
 }
@@ -251,6 +251,12 @@ char* scopy(char* from, char* to) {
 	}
 	return to;
 }
+char* emptyCharArray(char* empty) {
+	for ( uint32_t i = 0; i < 16 ; i += 1 ) {
+		empty[i] = '\0';
+	}
+	return empty;
+}
 
 // Compare two strings
 int compare(char* one, char* two) {
@@ -266,3 +272,5 @@ int compare(char* one, char* two) {
 	}
 	return 1;
 }
+
+

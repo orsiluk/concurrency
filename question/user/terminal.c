@@ -97,7 +97,7 @@ void chooseAction(char* x, int l) {
 		char x[16];
 		int len = read( x );
 		printInt(len);
-		wrtDisk(0, x, len);
+		wrtDisk(0, x);
 	}
 	else if (findProcess(x, "rddisk", l) == 1) {
 		//int len = read( x );
@@ -105,7 +105,7 @@ void chooseAction(char* x, int l) {
 		// So it seems like reading integers is not perfect ((Only works for strings))
 		int len = 16;
 		char x[len];
-		rdDisk(0, x, 16);
+		rdDisk(0, x);
 		printS("The forst 16 bites contain: ");
 		write(0, x, 16);
 		printS("\n");
@@ -114,16 +114,16 @@ void chooseAction(char* x, int l) {
 		//int len = read( x );
 
 		// So it seems like reading integers is not perfect ((Only works for strings))
-		char x[20];
+		char x[16];
 		printS("File name you want to read: ");
-		char name[4];
+		char name[16];
 		read(name);
 		openfile(1, name);
 		printS("\n");
 	}
 	else if (findProcess(x, "ofile", l) == 1) {
 		printS("Open file and replace content. File name: \n");
-		char name[4];
+		char name[16];
 		read(name);
 		int i = openfile(0, name);
 		//int i = openfile(0, "dogs");
@@ -137,11 +137,11 @@ void chooseAction(char* x, int l) {
 			int len;
 			len = read(t);
 
-			wrtDisk(i, t, len);
+			wrtDisk(i, t);
 		} else printS("This file doesn't exist! \n");
 
 	}
-	else if (findProcess(x, "closefile", l) == 1) {
+	else if (findProcess(x, "unlink", l) == 1) {
 		printS("Which file do you want to close? \n");
 		char name[4];
 		read(name);
@@ -151,39 +151,34 @@ void chooseAction(char* x, int l) {
 	else if (findProcess(x, "createfiles", l) == 1) {
 		//printS("In create file process");
 		printS("I create 3 files dogs, cats and bird \n");
-		char name[4];
+		char name[16];
 		char t0[16];
 		char t1[16];
 		char t2[16];
 		int len;
 
 		scopy("dogs", name);
-		scopy("fluffy :D ", t0);
-		len = slen(t0);
-		createfile(name, t0, len);
+		scopy("fluffy", t0);
+		createfile(name, t0, 16);
 
 		scopy("cats", name);
 		scopy("scratch", t1);
-		len = 7;//slen(t1);
-		createfile(name, t1, len);
+		createfile(name, t1, 16);
 
 		scopy("bird", name);
-		scopy("I don't like birds", t2);
-		len = slen(t2);
-		createfile(name, t2, len);
+		scopy("flie away", t2);
+		createfile(name, t2, 16);
 
 	}
 	else if (findProcess(x, "inputfile", l) == 1) {
 		char name[4];
 		char t[16];
-		int len;
-
 		printS("Read file name. Name must be 4 characters! \n");
 		read(name);
 
 		printS("Read file content. \n");
-		len = read(t);
-		createfile(name, t, len);
+		read(t);
+		createfile(name, t, 16);
 
 	}
 	else if (findProcess(x, "test", l) == 1) {
@@ -194,7 +189,7 @@ void chooseAction(char* x, int l) {
 		chooseAction("rddisk", slen("rddisk"));
 		chooseAction("rdfile", slen("rdfile"));
 		chooseAction("ofile", slen("ofile"));
-		chooseAction("closefile", slen("closefile"));
+		chooseAction("unlink", slen("closefile"));
 		chooseAction("inputfile", slen("inputfile"));
 
 		printS("Filesystem test over.");

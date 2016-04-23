@@ -12,9 +12,9 @@ ipc_t ipc[ 10 ];
 
 // Struct created to manage the memory
 typedef struct {
-	char name[4];
-	int address;
-	int size;
+	char name[16];
+	uint32_t address;
+	uint32_t size;
 } filelist;
 // List of files on disk
 filelist files[10];
@@ -156,56 +156,6 @@ int createProcess(uint32_t pc, uint32_t cpsr, uint32_t priority  ) {
 	return pid;
 }
 
-
-void kernel_handler_rst(ctx_t* ctx) {
-	/* Configure the mechanism for interrupt handling by
-	 *
-	 * - configuring timer st. it raises a (periodic) interrupt for each
-	 *   timer tick,
-	 * - configuring GIC st. the selected interrupts are forwarded to the
-	 *   processor via the IRQ interrupt signal, then
-	 * - enabling IRQ interrupts.
-	 */
-
-
-	ipcArray();
-	/*	for ( int i = 0; i < 10; i++ ) {
-			disk_rd(addr, files[i].name, 4);
-			files[i].address = 80 + i * 16;
-			disk_rd(addr + 5, files[i].size, 2);
-			addr = addr + 8;
-		}*/
-	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 5);
-
-	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
-	timer();
-	return;
-}
-
-void kernel_handler_irq(ctx_t* ctx) {
-	// Step 2: read  the interrupt identifier so we know the source.
-
-	uint32_t id = GICC0->IAR;
-
-	// Step 4: handle the interrupt, then clear (or reset) the source.
-
-	if ( id == GIC_SOURCE_TIMER0 ) {
-		//PL011_putc( UART0, 'T' );
-		/*		// if () {
-				int this = current->pid;
-				if ( this > 1 && this < chan + 1 ) schedulerR(ctx);
-				else if (this == chan + 1) execute(2);
-				//}*/
-		scheduler(ctx);
-		TIMER0->Timer1IntClr = 0x01;
-
-	}
-
-	// Step 5: write the interrupt identifier to signal we're done.
-
-	GICC0->EOIR = id;
-}
-
 // Add a new element to pcb (process control block)
 void addPCB(pid_t cp, pid_t pp, ctx_t* ctx, int prior) {
 
@@ -251,6 +201,85 @@ int createPipe(int c_start, int c_end) {
 
 	return slot;
 }
+
+// Clearly the problem is with creating files and where it puts them maybe with setup as well
+// Why does it have the wrong addresses?
+
+void setupFilesys() {
+	int loc = 16;
+	int l = 0;
+	char text[16];
+	for (int j = 0; j < 10; j++) {
+		// int j = 0;
+		files[j].address = 200 + (j * 16);
+
+		disk_rd(loc, text, 16);
+		scopy(text, files[j].name);
+
+		loc = 16 + loc;
+		//l = compare(files[j].name, "\000\000\000");
+		if (files[j].name[0] == '\0') {
+			files[j].size = 0;
+		} else {
+			//files[j].size = 1;
+			//disk_rd(&files[j].address, text, 16);
+			files[j].size = 16;
+			nrfile++;
+		}
+	}
+}
+
+void kernel_handler_rst(ctx_t* ctx) {
+	/* Configure the mechanism for interrupt handling by
+	 *
+	 * - configuring timer st. it raises a (periodic) interrupt for each
+	 *   timer tick,
+	 * - configuring GIC st. the selected interrupts are forwarded to the
+	 *   processor via the IRQ interrupt signal, then
+	 * - enabling IRQ interrupts.
+	 */
+
+
+	ipcArray();
+	setupFilesys();
+	/*	for ( int i = 0; i < 10; i++ ) {
+			disk_rd(addr, files[i].name, 4);
+			files[i].address = 80 + i * 16;
+			disk_rd(addr + 5, files[i].size, 2);
+			addr = addr + 8;
+		}*/
+	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 5);
+
+	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
+	timer();
+	return;
+}
+
+void kernel_handler_irq(ctx_t* ctx) {
+	// Step 2: read  the interrupt identifier so we know the source.
+
+	uint32_t id = GICC0->IAR;
+
+	// Step 4: handle the interrupt, then clear (or reset) the source.
+
+	if ( id == GIC_SOURCE_TIMER0 ) {
+		//PL011_putc( UART0, 'T' );
+		/*		// if () {
+				int this = current->pid;
+				if ( this > 1 && this < chan + 1 ) schedulerR(ctx);
+				else if (this == chan + 1) execute(2);
+				//}*/
+		scheduler(ctx);
+		TIMER0->Timer1IntClr = 0x01;
+
+	}
+
+	// Step 5: write the interrupt identifier to signal we're done.
+
+	GICC0->EOIR = id;
+}
+
+
 
 void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 
@@ -400,41 +429,62 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 		ctx -> gpr[0] = i;
 		break;
 	}
-	case 14 : { // wrtDisk(int where, char* x, int l)
+	case 14 : { // wrtDisk(int where, char* x)
 
 		// For now it only writes in the first line. Find a way to find you the next free space
 		uint32_t where = ( int )(ctx -> gpr[0]);
 		char* text = ( char* )(ctx -> gpr[1]);
-		int len = ( int )(ctx -> gpr[2]);
-
-		disk_wr(where, text, len);
+		//int len = ( int )(ctx -> gpr[2]);
+		char write[16];
+		emptyCharArray(write);
+		scopy(text, write);
+		disk_wr(where, write, 16);
 		break;
 	}
-	case 15 : { //rdDisk(int where, char* text,int len)
+	case 15 : { //rdDisk(int where, char* text)
 		int    where = ( int )(ctx -> gpr[0]);
 		char*  text =  ( char* )( ctx->gpr[ 1 ] );
-		int    len =   ( int )(ctx -> gpr[2]);
-		disk_rd(where, text, len);
+		//int    len =   ( int )(ctx -> gpr[2]);
+		disk_rd(where, text, 16);
 		break;
 	}
 	case 16 : {//createfile(char fname, char text, int fsize)
-		char*  fname =  ( char* )( ctx->gpr[ 0 ] );
-		char*  text =  ( char* )( ctx->gpr[ 1 ] );
+		char*  filename =  ( char* )( ctx->gpr[ 0 ] );
+		char*  input =  ( char* )( ctx->gpr[ 1 ] );
 		int    fsize = ( int )(ctx -> gpr[2]);
 
-		scopy(fname, files[nrfile].name);
 		int spot = -1;
-		for (int i = 0; i <= nrfile; i++) {
-			if (files[i].size == 0) {
-				spot = i;
-				break;
-			}
-		}
+		/*		for (int i = 0; i <= nrfile; i++) {
+					if (files[i].size == 0) {
+						spot = i;
+						break;
+					}
+				}*/
+
 
 		if (nrfile == 0) {
-			disk_wr(80, text, fsize); //I start at 80, I wanted to leave space to just write random stuff to disk
-			files[nrfile].address = 80;
-			files[nrfile].size = fsize;
+			char fname[16];
+			emptyCharArray(fname);
+			scopy(filename, fname);
+			printS("File name: ");
+			printS(fname);
+			printS("\n");
+
+			char text[16];
+			emptyCharArray(text);
+			scopy(input, text);
+			printS("Content: ");
+			printS(text);
+			printS("\n");
+
+			scopy(fname, files[nrfile].name);
+			disk_wr(16, fname, 16); // Writes the name of the file to memory so It can be loaded after I restart the kernel
+			// I start at 16 becuase the first block is empty, you can write and read things there
+			disk_wr(200, text, 16); //I start at 200, to make sure that the information about the files has enough space
+
+			files[nrfile].size = (uint32_t)fsize;
+			files[nrfile].address = (uint32_t)200;
+			printInt(files[nrfile].address);
 			/*			disk_wr(addr, files[nrfile].name, 4);
 						disk_wr(addr + 4, "\r", 1);
 
@@ -452,30 +502,33 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 						addr = addr + 12;*/
 			//}
 			nrfile++;
-		} else {
-			if (spot < 0) spot = nrfile;
-			if (spot = nrfile) nrfile++;
+		}
+		else if (nrfile == 10) {
+			printS("No more space to create files!");
+		}
+		else {
+			char fname[16];
+			emptyCharArray(fname);
+			scopy(filename, fname);
+			printS("File name: ");
+			printS(fname);
+			printS("\n");
+			char text[16];
+			emptyCharArray(text);
+			scopy(input, text);
+			printS("Content: ");
+			printS(text);
+			printS("\n");
+			/*if (spot < 0) spot = nrfile;
+			if (spot == nrfile)*/
+			spot = nrfile;
+			scopy(fname, files[spot].name);
+			disk_wr(16 + nrfile * 16, fname, 16);
 			files[spot].address = 16 + files[spot - 1].address;
-			files[spot].size = fsize;
-
-			/*			disk_wr(addr, files[spot].name, 4);
-						disk_wr(addr + 4, "\r", 1);
-
-									// disk_wr(addr + 6, files[spot].address, 2);
-									// disk_wr(addr + 4, "\r", 1);
-
-									// if (files[nrfile].size < 10) {
-									// 	disk_wr(addr + 9, files[spot].size, 1);
-									// 	disk_wr(addr + 10, "\r", 1);
-									// 	addr = addr + 11;
-									// }
-									// else {
-						disk_wr(addr + 9, files[spot].size, 2);
-						disk_wr(addr + 11, "\r", 1);
-						addr = addr + 12;*/
-			//}
-
-			disk_wr(files[spot].address, text, fsize);
+			files[spot].size = 16;
+			disk_wr(files[spot].address, text, 16);
+			printInt(files[nrfile].address);
+			nrfile++;
 		}
 
 
@@ -492,12 +545,12 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			eq = compare(fname, files[i].name);
 			if (eq == 1 && files[i].size != 0) {
 				if (read == 1) {
-					char content[files[i].size];
+					char content[16];
 					int adr = files[i].address;
-					disk_rd(files[i].address, content, files[i].size);
-					write(0, content, files[i].size);
+					disk_rd(files[i].address, content, 16);
+					write(0, content, 16);
 					//printS(content);
-					ctx->gpr[ 0 ] = files[i].size;
+					ctx->gpr[ 0 ] = 16;
 
 					break;
 				} else
