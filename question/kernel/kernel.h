@@ -42,10 +42,7 @@ typedef struct {
 	ctx_t ctx;
 } pcb_t;
 
-// Needed to define channels for IPC
 typedef struct {
-	// void * 1to2[5];
-	// void * 2to1[5];
 	int buff[2];
 	pid_t c_start;
 	pid_t c_end;

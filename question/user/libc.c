@@ -120,7 +120,6 @@ int readC(int chanid, int who) {
 	              : "=r" (r)
 	              : "r" (chanid), "r" (who)
 	              : "r0");
-	//return r;
 }
 
 // Run timer
@@ -171,7 +170,6 @@ void rdDisk(int where, char* text) {
 	              : "=r" (r)
 	              : "r" (where), "r" (text)
 	              : "r0");
-	//return r;
 }
 
 // Create file to disk
@@ -184,7 +182,6 @@ void createfile(char* name, char* text, int len) {
 	              : "=r" (r)
 	              : "r" (name), "r" (text), "r" (len)
 	              : "r0");
-	//return r;
 }
 
 // Open file from disk
@@ -236,7 +233,6 @@ void printS(char* text) {
 int slen(char* text) {
 	int i = 0;
 	while (text[i] != '\0' ) {
-		//write(0, (char*) text[i], 1);
 		i++;
 	}
 	return i;
@@ -260,13 +256,8 @@ char* emptyCharArray(char* empty) {
 
 // Compare two strings
 int compare(char* one, char* two) {
-	//int c = 1;
-	//int l1 = slen(one);
 	for ( uint32_t i = 0; i < 4 ; i += 1 ) {
-		/*		printS(&one[i]);
-				printS(&two[i]);*/
 		if (one[i] != two[i]) {
-			//printS("character mismatch");
 			return 0;
 		}
 	}

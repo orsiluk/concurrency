@@ -6,16 +6,8 @@ command, for which the terminal would react by forking and starting to
 execute the chosen process. When finished it will return to the terminal.
 */
 
-/*
-Questions:
-
-1. Do we want to exit the process or just go bact to terminal where we left off?
-2. Is it ok if the terminal is a program?
-*/
-
 
 int findProcess(char* x, char* command , int l) {
-	// printS("in findprocess \n");
 	int c = 1;
 	for ( uint32_t i = 0; i < l ; i += 1 ) {
 		if (x[i] != command[i]) c = 0;
@@ -24,45 +16,25 @@ int findProcess(char* x, char* command , int l) {
 }
 
 void chooseAction(char* x, int l) {
-	// printS(" in chooseaction \n");
+
 	if (findProcess(x, "run P0", l) == 1) {
-		//fork() returns a zero to the newly created child process.
-		//fork() returns a positive value, the process ID of the child process, to the parent.
 		int f = fork();
-		//printInt(f);
 		if (f == 0) {
 			P0();
-			//yield();
-			//system_exit();
-			// printS("why here P00");
-		} /*else {
-			yield();
-			printS("yielded");
-			return;
-
-		}*/
+		}
 	}
 
 	else if (findProcess(x, "run P1", l) == 1)	{	//printS(x);
 		int f = fork();
-		// printS(x);
 		if (f == 0) {
 			P1();
-			//system_exit();
 		}
-		// else {
-		// 	// printS("why here P1");
-		// 	yield();
-
-		// }
 	}
 
 	else if (findProcess(x, "run P2", l) == 1)	{
 		int f = fork();
-		// printS(x);
 		if (f == 0) {
 			P2();
-			// system_exit();
 		} else {
 			yield();
 
@@ -70,14 +42,9 @@ void chooseAction(char* x, int l) {
 	}
 	else if (findProcess(x, "run philo", l) == 1)	{
 		int f = fork();
-		// printS(x);
 		if (f == 0) {
 			philosophers();
-			//system_exit();
-		}/* else {
-			yield();
-
-		}*/
+		}
 	} else if (findProcess(x, "blocknr", l) == 1) {
 
 		int i = blockNum();
@@ -92,17 +59,15 @@ void chooseAction(char* x, int l) {
 		printInt(i);
 		printS("\n");
 	}
-	else if (findProcess(x, "wrtdisk", l) == 1) {
+	else if (findProcess(x, "wrtdisk", l) == 1) { // Write in first block
 		printS("What would you like to write to disk? \n");
 		char x[16];
 		int len = read( x );
 		printInt(len);
 		wrtDisk(0, x);
 	}
-	else if (findProcess(x, "rddisk", l) == 1) {
-		//int len = read( x );
+	else if (findProcess(x, "rddisk", l) == 1) { // read from first block
 
-		// So it seems like reading integers is not perfect ((Only works for strings))
 		int len = 16;
 		char x[len];
 		rdDisk(0, x);
@@ -111,9 +76,6 @@ void chooseAction(char* x, int l) {
 		printS("\n");
 	}
 	else if (findProcess(x, "rdfile", l) == 1) {
-		//int len = read( x );
-
-		// So it seems like reading integers is not perfect ((Only works for strings))
 		char x[16];
 		printS("File name you want to read: ");
 		char name[16];
@@ -124,6 +86,7 @@ void chooseAction(char* x, int l) {
 	else if (findProcess(x, "ofile", l) == 1) {
 		printS("Open file and replace content. File name: \n");
 		char name[16];
+		char yes[4];
 		read(name);
 		int i = openfile(0, name);
 		//int i = openfile(0, "dogs");
@@ -132,18 +95,24 @@ void chooseAction(char* x, int l) {
 			printS("Found file, location is: ");
 			printInt(i);
 			printS("\n");
-			printS("What do you wnat to replace the content with? \n");
-			char t[16];
-			int len;
-			len = read(t);
 
-			wrtDisk(i, t);
+			printS("Would you like to change the content? Yes /No \n");
+
+			read(yes);
+
+			if (compare(yes, "Yes ") || compare(yes, "yes ")) {
+				printS("What do you wnat to replace the content with? \n");
+				char t[16];
+				int len;
+				len = read(t);
+				wrtDisk(i, t);
+			}
 		} else printS("This file doesn't exist! \n");
 
 	}
 	else if (findProcess(x, "unlink", l) == 1) {
 		printS("Which file do you want to close? \n");
-		char name[4];
+		char name[16];
 		read(name);
 
 		closefile(name);
@@ -181,23 +150,23 @@ void chooseAction(char* x, int l) {
 		createfile(name, t, 16);
 
 	}
-	else if (findProcess(x, "test", l) == 1) {
-		chooseAction("blocknr", slen("blocknr"));
-		chooseAction("blockln", slen("blockln"));
-		chooseAction("wrtdisk", slen("wrtdisk"));
-		chooseAction("createfiles", slen("createfiles"));
-		chooseAction("rddisk", slen("rddisk"));
-		chooseAction("rdfile", slen("rdfile"));
-		chooseAction("ofile", slen("ofile"));
-		chooseAction("unlink", slen("closefile"));
-		chooseAction("inputfile", slen("inputfile"));
+	else if (findProcess(x, "test filesystem", l) == 1) {
+		chooseAction("blocknr", slen("blocknr")); // Return the number of blocks in memory
+		chooseAction("blockln", slen("blockln")); // Return the length of blocks in memory
+		chooseAction("wrtdisk", slen("wrtdisk")); // Write something in the first block
+		chooseAction("createfiles", slen("createfiles")); // Creates three files on disk
+		chooseAction("rddisk", slen("rddisk")); // Read the first block of disk
+		chooseAction("rdfile", slen("rdfile")); // Read file
+		chooseAction("ofile", slen("ofile")); // Open file and change content
+		chooseAction("unlink", slen("closefile")); // Close file
+		chooseAction("inputfile", slen("inputfile")); // Create file on disk and specify content
 
 		printS("Filesystem test over.");
 	}
-	/*	else {
-			printS("This is not a valid command!\n");
-			//system_exit();
-		}*/
+	else {
+		printS("This is not a valid command!\n");
+
+	}
 }
 
 void terminal() {
@@ -208,11 +177,6 @@ void terminal() {
 		//printInt(i);
 		printS("shelly$ ");
 		int l = read( x );
-		/*		while (l < 1) {
-					printS("shelly$ ");
-					l = read( x );
-				}*/
-		//printS("\n");
 		chooseAction(x, l);
 	}
 }

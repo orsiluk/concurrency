@@ -1,7 +1,0 @@
-* Implemented:
-	- write
-	- printInt
-	- printS
-	- fork
-	- exit
-	- read
