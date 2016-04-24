@@ -248,7 +248,7 @@ void kernel_handler_rst(ctx_t* ctx) {
 			disk_rd(addr + 5, files[i].size, 2);
 			addr = addr + 8;
 		}*/
-	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 5);
+	int i = createProcess(( uint32_t )( entry_terminal ), 0x50, 10);
 
 	current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 	timer();
@@ -510,15 +510,10 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			char fname[16];
 			emptyCharArray(fname);
 			scopy(filename, fname);
-			printS("File name: ");
-			printS(fname);
-			printS("\n");
 			char text[16];
 			emptyCharArray(text);
 			scopy(input, text);
-			printS("Content: ");
-			printS(text);
-			printS("\n");
+
 			/*if (spot < 0) spot = nrfile;
 			if (spot == nrfile)*/
 			spot = nrfile;
@@ -527,7 +522,6 @@ void kernel_handler_svc(ctx_t* ctx, uint32_t id ) {
 			files[spot].address = 16 + files[spot - 1].address;
 			files[spot].size = 16;
 			disk_wr(files[spot].address, text, 16);
-			printInt(files[nrfile].address);
 			nrfile++;
 		}
 

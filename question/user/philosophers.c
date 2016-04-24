@@ -139,7 +139,7 @@ I don't ever have to go in the forks again
 void think(int th) {
 	printInt(th);
 	printS("th philosopher is thinking \n");
-	//runT();
+	runT();
 	// int t = 0;
 	// while (t < 300000000) {
 	// 	t++;
@@ -176,130 +176,100 @@ void sticks(int me) {
 	int right = philo[me].rstick;
 	//int mess = -1;
 
-	printInt(me);
-	printS (" Philo lstick: ");
-	printInt(philo[me].lstick);
-	printS("\n");
-	printInt(me);
-	printS (" Philo rstick: ");
-	printInt(philo[me].rstick);
-	printS("\n");
+	// printInt(me);
+	// printS (" Philo lstick: ");
+	// printInt(philo[me].lstick);
+	// printS("\n");
+	// printInt(me);
+	// printS (" Philo rstick: ");
+	// printInt(philo[me].rstick);
+	// printS("\n");
 	while (left == 0) {
-		if (me == 0) {
-			left = readC(philo[me].lnb, 1);
-		} else {
+		//if (me == 0) {
+		left = readC(philo[me].lnb, 1);
+		// } else {
 
-			left = readC(philo[me].lnb, 0);
-		}
+		// 	left = readC(philo[me].lnb, 0);
+		// }
 		philo[me].lstick = left;
 	}
 	while (right == 0) {
-		if (me == 0) {
-			right = readC(me, 0);
-		} else {
-			right = readC(me, 1);
-		}
+		//if (me == 0) {
+		right = readC(me, 0);
+		// } else {
+		// 	right = readC(me, 1);
+		// }
 		philo[me].rstick = right;
 	}
 
 	printS("Philosopher "); printInt(me); printS(" is eating\n");
-	int t = 0;
-	/*	while (t < 300000000) {
-			t++;
-		}*/
-	//runT();
+	// int t = 0;
+	// while (t < 300000000) {
+	// 	t++;
+	// }
+	runT();
 	printS("Done eating "); printInt(me); printS("\n");
 
 	philo[me].hungry = 0;
 
 	philo[me].rstick = 0;
 	philo[me].lstick = 0;
-	writeC(me, 1, 0); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
-	writeC(philo[me].lnb, 1, 1); //lnb == with chanelid to left neighbour
-
-	printS("Stick sent");
+	// if (me == 0) {
+	// 	writeC(me, 1, 1); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
+	// 	writeC(philo[me].lnb, 1, 1);
+	// } else {
+	writeC(me, 1, 1); //id == with chanelid to right neighbour 3rd ar. 1 is left 0 is right
+	writeC(philo[me].lnb, 1, 0); //lnb == with chanelid to left neighbour
+	//}
+	//printS("Stick sent");
 }
-/*void sticks(int id) {
-	//printS("p1\n");
-	if (philo[id].lstick == 1 && philo[id].rstick == 1) {
-		//printS("In sticks\n");
-		printS("Philosopher "); printInt(id); printS(" is eating\n");
-		runT();
-		printS("Done eating \n");
-		philo[id].rstick = -1;
-		philo[id].lstick = -1;
-		//writeC(id, 1); //id == with chanelid to right neighbour
-		//philo[id].rstick = 0;
-		//writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
-		//philo[id].lstick = 0;
-
-		philo[id].hungry = 0;
-	} else if (philo[id].rstick == -1) {
-		writeC(id, 1); //id == with chanelid to right neighbour
-		philo[id].rstick = 0;
-	}
-	else if (philo[id].lstick == -1) {
-		writeC(philo[id].lnb, 1); //lnb == with chanelid to left neighbour
-		philo[id].lstick = 0;
-	}
-	else if (philo[id].rstick == 0) {
-		//printS("p2\n");
-		philo[id].rstick = readC(id);
-	}
-	else if (philo[id].lstick == 0) {
-		//printS("p3\n");
-		philo[id].lstick = readC(philo[id].lnb);
-	}
-	return;
-}*/
-
 
 void start() {
 	int i = 0;
-//	while (i < 50) {
-	// if (id < 5) {
+	while (i < 50) {
+		// if (id < 5) {
 
-	int philoid = get_id() - 2;
+		int philoid = get_id() - 2;
+		if (philoid == -1) system_exit();
+		/*	printS("Info id pid hungry lc rc lstick rstick lnb rnb");
+			printS("\n");
+			printInt(philo[philoid].id);
+			printS("  ");
+			printInt(philo[philoid].pid);
+			printS("  ");
+			printInt(philo[philoid].hungry);
+			printS("  ");
+			printInt(philo[philoid].lstick);
+			printS("  ");
+			printInt(philo[philoid].rstick);
+			printS("  ");
+			printInt(philo[philoid].lnb);
+			printS("  ");
+			printInt(philo[philoid].rnb);
+			printS("\n");
 
-	/*	printS("Info id pid hungry lc rc lstick rstick lnb rnb");
-		printS("\n");
-		printInt(philo[philoid].id);
-		printS("  ");
-		printInt(philo[philoid].pid);
-		printS("  ");
-		printInt(philo[philoid].hungry);
-		printS("  ");
-		printInt(philo[philoid].lstick);
-		printS("  ");
-		printInt(philo[philoid].rstick);
-		printS("  ");
-		printInt(philo[philoid].lnb);
-		printS("  ");
-		printInt(philo[philoid].rnb);
-		printS("\n");
+			printInt(philoid);
+		*/
+		if (philo[philoid].hungry == 0) {
+			think(philoid);
+			philo[philoid].hungry = 1;
+		}
+		else {
 
-		printInt(philoid);
-	*/
-	if (philo[philoid].hungry == 0) {
-		think(philoid);
-		philo[philoid].hungry = 1;
+			printS("Philosopher "); printInt(philoid); printS(" is hungry\n");
+
+			sticks(philoid);
+
+
+			//	}
+			i++;
+			//id++;
+			//} else {
+
+			//	id = 0;
+			//}
+		}
 	}
-	else {
-
-		printS("Philosopher "); printInt(philoid); printS(" is hungry\n");
-
-		sticks(philoid);
-
-
-		//	}
-		i++;
-		//id++;
-		//} else {
-
-		//	id = 0;
-		//}
-	}
-//}
 }
 
 void philosophers() {
