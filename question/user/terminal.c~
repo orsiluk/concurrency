@@ -89,7 +89,8 @@ void chooseAction(char* x, int l) {
 		char yes[4];
 		read(name);
 		int i = openfile(0, name);
-		
+		//int i = openfile(0, "dogs");
+
 		if (i > 0) {
 			printS("Found file, location is: ");
 			printInt(i);
