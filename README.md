@@ -1,8 +1,8 @@
 # concurrency
-COncurrentCOmputingCOursework 2
+Concurrent Computing Coursework 2
 
-Implemented Operating System Kernel in C and Assembly.
+Implemented Operating System Kernel for ARM RealView Platform Baseboard for Cortex-A8 emulated by QEMU in C and Assembly.
 
-ϖ	Implemented system calls (fork, exit, yield etc.), scheduler, inter process communication, shell, process execution
-ϖ	Developed file system based on simplified, emulated disk
+- Implemented system calls (fork, exit, yield etc.), scheduler, inter process communication, shell, process execution
+- Developed file system based on simplified, emulated disk
 
